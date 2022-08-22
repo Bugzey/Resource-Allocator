@@ -1,0 +1,6 @@
+alembic
+flask
+flask_httpauth
+flask_restful
+marshmallow
+
