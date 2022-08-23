@@ -4,8 +4,9 @@ Unit tests for the main module
 
 import unittest
 
-from package_name.main import *
+from resource_allocator.main import *
 
+@unittest.skip("TODO: figure out what to test in main")
 class MainTestCase(unittest.TestCase):
     def setUp(self):
         pass

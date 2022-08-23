@@ -9,9 +9,7 @@ from sqlalchemy.orm import(
     declarative_base,
 )
 
-from resource_allocator.db import engine, sess
-
-metadata = db.MetaData(bind = engine, schema = "resource_allocator")
+metadata = db.MetaData(schema = "resource_allocator")
 
 class BaseBase:
     id = db.Column(db.Integer, primary_key = True, nullable = False)
@@ -42,7 +40,7 @@ class UserModel(Base):
     __tablename__ = "user"
     email = db.Column(db.String(255), nullable = False)
     password_hash = db.Column(db.String(255), nullable = False)
-    role_id = db.Column(db.Integer, nullable = False)
+    role_id = db.Column(db.Integer, db.ForeignKey("role.id"), nullable = False)
     role = orm.relationship("RoleModel")
 
 
@@ -69,4 +67,16 @@ class ResourceGroupModel(Base):
 class Allocation(Base):
     __tablename__ = "allocation"
     pass
+
+
+def populate_enums(
+    metadata: db.MetaData,
+    sess: db.orm.Session,
+) -> None:
+    table_enums = [
+        (RoleModel, "role", RoleEnum),
+    ]
+
+    for table, column, enum in table_enums:
+        sess.add_all([table(**{column: item.value}) for item in enum])
 

@@ -7,13 +7,22 @@ This module is the entry point to the appliation crateing and returning a Flask 
 from flask import Flask
 from flask_restful import Api
 
-from resource_planner.resources.routes import routes
+from resource_allocator.resources.routes import routes
 
-def create_app():
-    app = Flask(__app__)
-    api = api(app)
+def create_app() -> Flask:
+    """
+    Flask app factory that also registers API resources
 
-    for route in routes::
+    Args:
+        None
+
+    Returns:
+        flask.Flask: instantiated Flask application
+    """
+    app = Flask(__name__)
+    api = Api(app)
+
+    for route in routes:
         api.add_resource(*route)
 
     return app
