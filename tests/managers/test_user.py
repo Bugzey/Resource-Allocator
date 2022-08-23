@@ -51,3 +51,10 @@ class UserManagerTestCase(unittest.TestCase):
         registration = user.UserManager.register(self.data)
         result = user.UserManager.login({**self.data, "email": "bla@example.com"})
         self.assertIn("No such user", result[0]) # message
+
+
+@unittest.skip("Unimplemented")
+class VerifyTokenTestCase(unittest.TestCase):
+    def test_verify_token(self):
+        pass
+
