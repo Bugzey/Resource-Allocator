@@ -56,7 +56,7 @@ def verify_token(token):
     """
     try:
         parsed_token = parse_token(token = token, secret = SECRET)
-    except jwt.ExpiredSignatureError:
+    except Exception:
         return False
 
     user = sess.get(UserModel, parsed_token["sub"])

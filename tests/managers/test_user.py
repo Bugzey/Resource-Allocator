@@ -2,10 +2,14 @@
 Tests for the managers.auth module
 """
 
+import datetime as dt
 import unittest
 from unittest.mock import patch, MagicMock
 
+import jwt
+
 from resource_allocator import models
+from resource_allocator.config import SECRET
 from resource_allocator.db import engine, sess
 from resource_allocator.main import create_app
 from resource_allocator.managers import user
@@ -17,7 +21,6 @@ class UserManagerTestCase(unittest.TestCase):
     def setUp(self):
         metadata.create_all(engine)
         models.populate_enums(metadata, sess)
-        self.app = create_app()
         self.data = {
             "email": "test@example.com",
             "password": 123456,
@@ -57,8 +60,35 @@ class UserManagerTestCase(unittest.TestCase):
         self.assertIn("No such user", result[0]) # message
 
 
-@unittest.skip("Unimplemented")
 class VerifyTokenTestCase(unittest.TestCase):
-    def test_verify_token(self):
-        pass
+    def setUp(self):
+        now = dt.datetime.utcnow()
+        self.data = {
+            "sub": 12,
+            "iat": now,
+            "exp": now + dt.timedelta(seconds = 3600),
+        }
+        self.good_token = jwt.encode(self.data, key = SECRET, algorithm = "HS256")
+
+        self.expired_token = jwt.encode({
+            **self.data,
+            "exp": 0,
+        }, key = SECRET, algorithm = "HS256")
+
+    @patch("resource_allocator.managers.user.sess")
+    def test_verify_token(self, mock_sess: MagicMock):
+        with self.subTest("Good token"):
+            mock_sess.get.return_value = 12
+            result = user.verify_token(self.good_token)
+            self.assertEqual(result, 12)
+            mock_sess.get.assert_called()
+
+        with self.subTest("Expired token"):
+            result = user.verify_token(self.expired_token)
+            self.assertFalse(result)
+
+        with self.subTest("Missing user"):
+            mock_sess.get.return_value = None
+            result = user.verify_token(self.good_token)
+            self.assertTrue(result)
 

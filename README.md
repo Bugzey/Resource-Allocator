@@ -40,9 +40,9 @@ Outstanding features and associated tasks will be tallied in this README file un
 Feature brainstorm:
 
 * [ ] database objects
-	* [ ] user
-	* [ ] resource
-	* [ ] resource group (can be recursive)
+	* [X] user
+	* [X] resource
+	* [X] resource group (can be recursive)
 	* [ ] iteration - type of time iteration to request resources for (?)
 	* [ ] request - pending user requests
 	* [ ] allocation - resource X user X iteration X exact date
@@ -50,8 +50,8 @@ Feature brainstorm:
 * [ ] endpoints:
 	* [ ] /user - list own info (shortcut for user/<current user id> ?
 	* [ ] /users/ - list all users (admin required)
-	* [ ] /resource/ - list all resources
-	* [ ] /resource_group/ - (?)
+	* [X] /resource/ - list all resources
+	* [X] /resource_group/ - (?)
 	* [ ] /request - post a request for a resource
 	* [ ] /iteration - create, list
 	* [ ] /allocate - start the automatic allocation, be able to pass overrides
@@ -72,6 +72,7 @@ Feature brainstorm:
 - [ ] In Production
 - [ ] Unsupported
 - [ ] Retired
+
 
 ##	Authors and Acknowledgement
 README based on <https://www.makeareadme.com/>
