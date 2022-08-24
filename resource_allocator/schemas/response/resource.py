@@ -9,3 +9,6 @@ from resource_allocator.schemas.base import BaseSchema
 class ResourceResponseSchema(BaseSchema):
     name = fields.String(required = True)
 
+class ResourceGroupResponseSchema(BaseSchema):
+    name = fields.String(required = True)
+

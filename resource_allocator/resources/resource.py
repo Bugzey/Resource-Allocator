@@ -4,26 +4,29 @@ API resources for resource objects
 
 from typing import Optional
 
-from flask import request
-from flask_restful import Resource
-
 from resource_allocator.managers.resource import (
     ResourceManager, ResourceGroupManager, ResourceToGroupModel,
 )
-from resource_allocator.schemas.response.resource import ResourceResponseSchema
+from resource_allocator.schemas.response.resource import (
+    ResourceResponseSchema, ResourceGroupResponseSchema,
+)
+from resource_allocator.schemas.request.resource import (
+    ResourceRequestSchema, ResourceGroupRequestSchema,
+)
+from resource_allocator.resources.base import BaseResource
 
-class ResourceResource(Resource):
-    def get(self, id: Optional[int] = None) -> dict:
-        #   TODO: add auth
-        if id is None:
-            result = ResourceManager.list_all_items()
-            return ResourceResponseSchema().dump(result, many = True)
+class ResourceResource(BaseResource):
+    manager = ResourceManager
+    request_schema = ResourceRequestSchema
+    response_schema = ResourceResponseSchema
+    read_role_required = "user"
+    write_role_required = "admin"
 
-        result = ResourceManager.list_single_item(id)
-        return ResourceResponseSchema().dump(result)
 
-    def post(self) -> dict:
-        data = request.get_json()
-        result = ResourceManager.create_item(data)
-        return ResourceResponseSchema().dump(result)
+class ResourceGroupResource(BaseResource):
+    manager = ResourceGroupManager
+    request_schema = ResourceGroupRequestSchema
+    response_schema = ResourceGroupResponseSchema
+    read_role_required = "user"
+    write_role_required = "admin"
 
