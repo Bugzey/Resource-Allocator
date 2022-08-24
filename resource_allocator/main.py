@@ -7,6 +7,7 @@ This module is the entry point to the appliation crateing and returning a Flask 
 from flask import Flask
 from flask_restful import Api
 
+from resource_allocator.db import sess
 from resource_allocator.resources.routes import routes
 
 def create_app() -> Flask:
@@ -24,6 +25,11 @@ def create_app() -> Flask:
 
     for route in routes:
         api.add_resource(*route)
+
+    @app.after_request
+    def commit(response):
+        sess.commit()
+        return response
 
     return app
 

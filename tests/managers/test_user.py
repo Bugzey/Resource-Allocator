@@ -5,8 +5,9 @@ Tests for the managers.auth module
 import unittest
 from unittest.mock import patch, MagicMock
 
-from resource_allocator.db import engine, sess
 from resource_allocator import models
+from resource_allocator.db import engine, sess
+from resource_allocator.main import create_app
 from resource_allocator.managers import user
 from resource_allocator.utils.db import change_schema
 
@@ -16,9 +17,12 @@ class UserManagerTestCase(unittest.TestCase):
     def setUp(self):
         metadata.create_all(engine)
         models.populate_enums(metadata, sess)
+        self.app = create_app()
         self.data = {
             "email": "test@example.com",
             "password": 123456,
+            "first_name": "bla",
+            "last_name": "bla",
         }
 
     def tearDown(self):

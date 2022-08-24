@@ -12,19 +12,25 @@ class RegisterUserRequestSchemaTestCase(unittest.TestCase):
         self.valid_user = {
             "email": "some@example.com",
             "password": "1234Aa.",
+            "first_name": "bla",
+            "last_name": "bla",
         }
         self.invalid_user = {
             "email": "not an email",
             "password": "-",
+            "first_name": 12,
+            "last_name": 12,
         }
         self.dupe_user = {
             "email": "dupe_user@example.com",
             "password": "1234Aa.",
+            "first_name": "bla",
+            "last_name": "bla",
         }
 
     @patch("resource_allocator.schemas.request.user.sess")
     def test_register_user_schema(self, mock_sess: MagicMock):
-        mock_sess.query.return_value.all.return_value = ["dupe_user@example.com"]
+        mock_sess.query.return_value.all.return_value = [("dupe_user@example.com", )]
         schema = user.RegisterUserRequestSchema()
 
         with self.subTest("valid user"):
@@ -33,7 +39,7 @@ class RegisterUserRequestSchemaTestCase(unittest.TestCase):
 
         with self.subTest("Invalid user"):
             result = schema.validate(self.invalid_user)
-            self.assertEqual(len(result), 2)
+            self.assertEqual(len(result), 4)
             self.assertIn("email", result.keys())
             self.assertIn("Not a valid email address", result["email"][0])
             self.assertIn("password", result.keys())

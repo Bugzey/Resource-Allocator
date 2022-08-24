@@ -8,7 +8,7 @@ Create Date: 2022-08-22 22:02:57.986357
 from alembic import op
 import sqlalchemy as sa
 
-from resource_allocator.models import RoleEnum
+from resource_allocator.models import populate_enums, metadata
 
 
 # revision identifiers, used by Alembic.
@@ -75,13 +75,10 @@ def upgrade() -> None:
     )
     #   Insert values to tables
     engine = op.get_bind()
-    metadata = sa.MetaData(bind = engine, schema = "resource_allocator")
-    role = sa.Table("role", metadata, autoload_with = engine)
+    with sa.orm.Session(engine) as sess:
+        populate_enums(metadata = metadata, sess = sess) 
+        sess.commit()
 
-    op.bulk_insert(
-        role,
-        [{"role": item.value} for item in RoleEnum],
-    )
     # ### end Alembic commands ###
 
 

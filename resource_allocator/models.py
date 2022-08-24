@@ -33,13 +33,15 @@ class RoleEnum(Enum):
 
 class RoleModel(Base):
     __tablename__ = "role"
-    role = db.Column(db.String(255), nullable = False)
+    role = db.Column(db.String(255), nullable = False, unique = True)
 
 
 class UserModel(Base):
     __tablename__ = "user"
-    email = db.Column(db.String(255), nullable = False)
+    email = db.Column(db.String(255), nullable = False, unique = True)
     password_hash = db.Column(db.String(255), nullable = False)
+    first_name = db.Column(db.String(255), nullable = False)
+    last_name = db.Column(db.String(255), nullable = False)
     role_id = db.Column(db.Integer, db.ForeignKey("role.id"), nullable = False)
     role = orm.relationship("RoleModel")
 
@@ -78,5 +80,6 @@ def populate_enums(
     ]
 
     for table, column, enum in table_enums:
-        sess.add_all([table(**{column: item.value}) for item in enum])
+        if sess.query(db.func.count(table.id)).scalar() == 0:
+            sess.add_all([table(**{column: item.value}) for item in enum])
 

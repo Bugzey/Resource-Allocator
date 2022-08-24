@@ -12,11 +12,13 @@ from resource_allocator.models import UserModel
 class RegisterUserRequestSchema(Schema):
     email = fields.Email(required = True)
     password = fields.String(required = True)
+    first_name = fields.String(required = True)
+    last_name = fields.String(required = True)
 
     @validates("email")
     def validate_email(self, value):
         emails = sess.query(UserModel.email).all()
-        if value in emails:
+        if (value, ) in emails:
             raise ValidationError(f"Email {value} already registered")
 
     @validates("password")
