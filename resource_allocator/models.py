@@ -17,7 +17,7 @@ metadata = db.MetaData(schema = "resource_allocator")
 
 class BaseBase:
     id = db.Column(db.Integer, primary_key = True, nullable = False)
-    created_date = db.Column(
+    created_time = db.Column(
         db.DateTime, server_default = db.func.now(), nullable = False,
     )
     updated_time = db.Column(
