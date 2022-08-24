@@ -25,6 +25,7 @@ def change_schema(metadata: db.MetaData, schema: str) -> db.MetaData:
         table.schema = schema
         new_tables[new_table_name] = table
 
+    new_tables = db.util._collections.FacadeDict(new_tables)
     metadata.tables = new_tables
     return metadata
 

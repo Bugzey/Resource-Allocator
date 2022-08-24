@@ -4,9 +4,13 @@ Database models creation
 
 from enum import Enum
 import sqlalchemy as db
+from sqlalchemy import (
+    Column, String, Integer, Date, DateTime, ForeignKey, func, 
+)
 from sqlalchemy import orm
 from sqlalchemy.orm import(
     declarative_base,
+    relationship,
 )
 
 metadata = db.MetaData(schema = "resource_allocator")
@@ -58,12 +62,19 @@ class RequestModel(Base):
 
 class ResourceModel(Base):
     __tablename__ = "resource"
-    pass
+    name = Column(String(255), nullable = False, unique = True)
+    top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
 
 
 class ResourceGroupModel(Base):
     __tablename__ = "resource_group"
-    pass
+    name = Column(String(255), nullable = False, unique = True)
+
+
+class ResourceToGroupModel(Base):
+    __tablename__ = "resource_to_group"
+    resource_id = Column(Integer, ForeignKey("resource.id"))
+    resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
 
 
 class Allocation(Base):
