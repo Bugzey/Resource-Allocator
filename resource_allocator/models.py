@@ -78,6 +78,7 @@ class IterationModel(Base):
     start_date= Column(Date, nullable = False)
     end_date = Column(Date, nullable = False)
     accepts_requests = Column(Boolean, nullable = False, server_default = "true")
+    requests = relationship("RequestModel")
 
 
 class RequestModel(Base):
@@ -89,7 +90,7 @@ class RequestModel(Base):
     requested_resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
 
 
-class Allocation(Base):
+class AllocationModel(Base):
     __tablename__ = "allocation"
     iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable = False)
     date = Column(Date, nullable = False)

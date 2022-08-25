@@ -45,7 +45,7 @@ Feature brainstorm:
 	* [X] resource group (can be recursive)
 	* [X] iteration - type of time iteration to request resources for (?)
 	* [X] request - pending user requests
-	* [ ] resource to resource group - many-to-many mapping
+	* [X] resource to group - many-to-many mapping
 	* [ ] allocation - resource X user X iteration X exact date
 
 * [ ] endpoints:
@@ -54,8 +54,8 @@ Feature brainstorm:
 	* [X] /resource_group/ - (?)
 	* [X] /iteration/ - create, list
 	* [X] /request/ - post a request for a resource
-	* [ ] /resource_to_resource_group/ - many-to-many mapping
-	* [ ] /allocation( - start the automatic allocation, be able to pass overrides
+	* [X] /resource_to_group/ - many-to-many mapping
+	* [ ] /allocation/ - start the automatic allocation, be able to pass overrides
 
 * [ ] allocation algorithm - initial + partial addition?
 	* [ ] apply overrides without question
