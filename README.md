@@ -13,27 +13,90 @@ targeted, other systems should work directly or be easily integrated.
 
 
 ##	Installation
-(TBA)
+The project is structured as a runnable Python library that can also be built and installed using
+pip. Required third-party libraries are available in `requirements.txt`. To install and configure
+the application, run the following commands.
 
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn,
-NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a
-novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people
-to using your project as quickly as possible. If it only runs in a specific context like a
-particular programming language version or operating system or has dependencies that have to be
-installed manually, also add a Requirements subsection. 
+Install all requirements. Use of virtual environments is not mandatory:
+
+```
+pip install -r requirements.txt
+```
+
+One can build and distribute the entire project using `setuptools` and `build` by creating a source
+or wheel package:
+
+```
+python -m build --wheel
+```
+
+Running the API requires that environment variables are set up externally and are available both for
+development/production use and for running tests. The following variables are mandatory:
+
+|Environment variable|Description|
+|---|---|
+|USER|Username for connecting to the relational (PostgreSQL) database|
+|PASSWORD|Password for connecting to the relational database|
+|SERVER|Database server hostname|
+|PORT|Database server port|
+|DATABASE|Database (catalog) name to use|
+|SECRET|Long string to use as an application secret for encoding and decoding tokens|
+
+Furthermore, the application assumes that a schema named `resource_allocator` exists in the
+database. It is NOT created when running database migrations.
 
 
 ##	Usage
-(TBA)
+###	Starting the Server
+To run a development or a low-traffic server, execute the package directly either from the
+source directory or after having built and installed a redistributable package:
 
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the
-smallest example of usage that you can demonstrate, while providing links to more sophisticated
-examples if they are too long to reasonably include in the README. 
+```
+python -m resource_allocator
+```
+
+The server can also be run using Flask:
+
+```
+flask --app=resource_allocator.main run
+```
+
+
+###	API Endpoints
+Several API endpoints are exposed that accept GET, POST, PUT and DELETE HTTP requests.
+
+- Register User:
+	- `/register/`
+- Login User:
+	- `/login/`
+- Resource:
+	- `/resources/`
+	- `/resources/<int:id>`
+- Resource Group:
+	- `/resource_groups/`
+	- `/resource_groups/<int:id>`
+- Resource To Group:
+	- `/resource_to_group/`
+	- `/resource_to_group/<int:id>`
+- Iteration:
+	- `/iterations/`
+	- `/iterations/<int:id>`
+- Request:
+	- `/requests/`
+	- `/requests/<int:id>`
+- Allocation:
+	- `/allocation/`
+	- `/allocation/<int:id>`
+	- `/allocation/automatic_allocation`
 
 
 ##	Contributing
 Features and bug fixes should be written in their own separate git branches stemming from the head
 of the master branch. Automated testing using the `unittest` framework is strongly encouraged.
+
+Existing tests assume an active configuration exists as described in [Installation](#installation),
+and that a separate schema called `resource_allocator_test` exists. Tests automatically create, fill
+and then delete objects from this schema.
 
 Outstanding features and associated tasks will be tallied in this README file until further notice.
 
