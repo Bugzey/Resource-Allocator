@@ -6,7 +6,7 @@ from flask import request
 from flask_restful import Resource
 
 from resource_allocator.managers.user import UserManager
-from resource_allocator.schemas.request.user import (
+from resource_allocator.schemas.user import (
     RegisterUserRequestSchema, LoginUserRequestSchema,
 )
 from resource_allocator.utils.schema import validate_schema

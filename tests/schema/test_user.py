@@ -5,7 +5,7 @@ Unit tests for schema.request.user
 import unittest
 from unittest.mock import patch, MagicMock
 
-from resource_allocator.schemas.request import user
+from resource_allocator.schemas import user
 
 class RegisterUserRequestSchemaTestCase(unittest.TestCase):
     def setUp(self):
@@ -28,7 +28,7 @@ class RegisterUserRequestSchemaTestCase(unittest.TestCase):
             "last_name": "bla",
         }
 
-    @patch("resource_allocator.schemas.request.user.sess")
+    @patch("resource_allocator.schemas.user.sess")
     def test_register_user_schema(self, mock_sess: MagicMock):
         mock_sess.query.return_value.all.return_value = [("dupe_user@example.com", )]
         schema = user.RegisterUserRequestSchema()

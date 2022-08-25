@@ -11,11 +11,11 @@ from resource_allocator.managers.user import auth
 from resource_allocator.managers.resource import (
     ResourceManager, ResourceGroupManager, ResourceToGroupModel,
 )
-from resource_allocator.schemas.response.resource import (
-    ResourceResponseSchema, ResourceGroupResponseSchema,
+from resource_allocator.schemas.resource import (
+    ResourceRequestSchema, ResourceResponseSchema,
 )
-from resource_allocator.schemas.request.resource import (
-    ResourceRequestSchema, ResourceGroupRequestSchema,
+from resource_allocator.schemas.resource_group import (
+    ResourceGroupRequestSchema, ResourceGroupResponseSchema,
 )
 from resource_allocator.resources.base import BaseResource
 

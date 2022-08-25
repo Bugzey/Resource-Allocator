@@ -8,6 +8,7 @@ from marshmallow import Schema, fields, validates, ValidationError
 
 from resource_allocator.db import sess
 from resource_allocator.models import UserModel
+from resource_allocator.schemas.base import BaseSchema
 
 class RegisterUserRequestSchema(Schema):
     email = fields.Email(required = True)
@@ -37,4 +38,15 @@ class RegisterUserRequestSchema(Schema):
 class LoginUserRequestSchema(Schema):
     email = fields.Email(required = True)
     password = fields.String(required = True)
+
+
+class UserRequestSchema(BaseSchema):
+    pass
+
+class UserResponseSChema(BaseSchema):
+    email = fields.Email()
+    first_name = fields.String()
+    last_name = fields.String()
+    role_id = fields.Integer()
+    role = fields.Dict()
 

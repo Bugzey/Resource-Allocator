@@ -75,8 +75,8 @@ class ResourceToGroupModel(Base):
 
 class IterationModel(Base):
     __tablename__ = "iteration"
-    start_time = Column(DateTime, nullable = False)
-    end_time = Column(DateTime, nullable = False)
+    start_date= Column(Date, nullable = False)
+    end_date = Column(Date, nullable = False)
     accepts_requests = Column(Boolean, nullable = False, server_default = "true")
 
 

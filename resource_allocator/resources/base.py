@@ -80,7 +80,7 @@ class BaseResource(ABC, Resource):
         if errors:
             return "Data validation errors: {}".format(errors), 400
 
-        result = self.manager.create_item(self.request_schema().dump(data))
+        result = self.manager.create_item(self.request_schema().load(data))
         return self.response_schema().dump(result)
 
     @auth.login_required
