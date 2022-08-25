@@ -90,6 +90,19 @@ Several API endpoints are exposed that accept GET, POST, PUT and DELETE HTTP req
 	- `/allocation/automatic_allocation`
 
 
+Example API calls are included in the top-level `utils/` folder using the `curl` command-line
+program. Endpoint scripts requiring authentication expect that an environment variable named `TOKEN`
+exists. The token can be obtained by registering or logging in a user:
+
+```
+bash utils/signup.sh
+bash utils/login.sh
+```
+
+Some scripts accept ordered command-line arguments that are described in the beginning of the Bash
+file.
+
+
 ##	Contributing
 Features and bug fixes should be written in their own separate git branches stemming from the head
 of the master branch. Automated testing using the `unittest` framework is strongly encouraged.
