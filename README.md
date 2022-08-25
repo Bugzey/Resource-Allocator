@@ -1,11 +1,11 @@
 #	Resource Planner
 
 ##	Description
-Resource planner is an automated back-end API to facilitate the reservation adn allocation of
+Resource planner is an automated back-end API to facilitate the reservation and allocation of
 loosely-defined resources such as desks in an office space. End-users can request a specific
-resource or state a combination of preferences that are then used o allocate resources in an optimal
-manner. Admin users have the ability to manually allocate resources and to override automated
-decisions.
+resource or state a combination of preferences that are then used to allocate resources in an
+optimal manner. Admin users have the ability to manually allocate resources and to override
+automated decisions.
 
 This repository offers a back-end web application programming interface (API) built on the Python
 Flask web framework. Data is stored in a relational database. Although PostgreSQL 14 is specifically
@@ -43,17 +43,19 @@ Feature brainstorm:
 	* [X] user
 	* [X] resource
 	* [X] resource group (can be recursive)
-	* [ ] iteration - type of time iteration to request resources for (?)
-	* [ ] request - pending user requests
+	* [X] iteration - type of time iteration to request resources for (?)
+	* [X] request - pending user requests
+	* [ ] resource to resource group - many-to-many mapping
 	* [ ] allocation - resource X user X iteration X exact date
 
 * [ ] endpoints:
 	* [ ] /users/ - list all users (admin required)
 	* [X] /resource/ - list all resources
 	* [X] /resource_group/ - (?)
-	* [ ] /request - post a request for a resource
-	* [ ] /iteration - create, list
-	* [ ] /allocate - start the automatic allocation, be able to pass overrides
+	* [X] /iteration/ - create, list
+	* [X] /request/ - post a request for a resource
+	* [ ] /resource_to_resource_group/ - many-to-many mapping
+	* [ ] /allocation( - start the automatic allocation, be able to pass overrides
 
 * [ ] allocation algorithm - initial + partial addition?
 	* [ ] apply overrides without question
@@ -63,11 +65,14 @@ Feature brainstorm:
 	* [ ] Use simplex algorithm? Alternatively try to sort days by possible preference points
 	  (getting combinatorical here)
 
+* [ ] Third-party integration
+	* [ ] Optional log-in via Azure Active Directory (AD) for a specific Azure tenant
+
 
 ##	Project Status:
-- [X] Planning
+- [ ] Planning
 - [ ] Prototype
-- [ ] In Development
+- [X] In Development
 - [ ] In Production
 - [ ] Unsupported
 - [ ] Retired
