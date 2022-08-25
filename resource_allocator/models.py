@@ -65,29 +65,57 @@ class ResourceGroupModel(Base):
 
 class ResourceToGroupModel(Base):
     __tablename__ = "resource_to_group"
-    resource_id = Column(Integer, ForeignKey("resource.id"))
-    resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
+    resource_id = Column(Integer, ForeignKey("resource.id"), nullable = False)
+    resource_group_id = Column(
+        Integer,
+        ForeignKey("resource_group.id"),
+        nullable = False,
+    )
 
 
 class IterationModel(Base):
     __tablename__ = "iteration"
-    pass
+    start_time = Column(DateTime, nullable = False)
+    end_time = Column(DateTime, nullable = False)
+    accepts_requests = Column(Boolean, nullable = False, server_default = "true")
 
 
 class RequestModel(Base):
     __tablename__ = "request"
-    pass
+    iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable = False)
+    requested_date = Column(Date, nullable = False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable = False)
+    requested_resource_id = Column(Integer, ForeignKey("resource.id"))
+    requested_resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
 
 
 class Allocation(Base):
     __tablename__ = "allocation"
-    pass
+    iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable = False)
+    date = Column(Date, nullable = False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable = False)
+    source_request_id = Column(Integer, ForeignKey("request.id"), nullable = False)
+    allocated_resource_id = Column(Integer, ForeignKey("resource.id"))
+    points = Column(Integer, nullable = False)
+    total_points = Column(Integer, nullable = False)
 
 
 def populate_enums(
     metadata: db.MetaData,
     sess: db.orm.Session,
 ) -> None:
+    """
+    Function to write defined enum values to their associated tables. This is used during an
+    initial database migration or to make dummy databases during testing. If is data in the table,
+    no rows are inserted.
+
+    Args:
+        metadata: db.MetaData object where the tables are bound to
+        sess: active db.orm.Session object already bound to its database engine
+
+    Returns:
+        None
+    """
     table_enums = [
         (RoleModel, "role", RoleEnum),
     ]
