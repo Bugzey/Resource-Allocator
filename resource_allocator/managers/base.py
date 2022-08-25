@@ -59,3 +59,18 @@ class BaseManager(ABC):
         sess.flush()
         return item
 
+    @classmethod
+    def modify_item(cls, id: int, data: dict) -> db.Table:
+        item = sess.get(cls.model, id)
+        if not item:
+            return f"{cls.model.__tablename__} not found", 404
+
+        sess.execute(
+            db.update(cls.model) \
+            .where(cls.model.id == id) \
+            .values(**data)
+        )
+
+        sess.flush()
+        return item
+

@@ -35,6 +35,6 @@ class ResourceGroupRequestSchema(Schema):
 
     @validates("top_resource_group_id")
     def validate_top_resource_group_id(self, value):
-        if not self.is_top_level and not sess.get(ResourceGroupModel, value):
+        if not sess.get(ResourceGroupModel, value):
             raise ValidationError(f"Invalid top_resource_group_id: {value}")
 

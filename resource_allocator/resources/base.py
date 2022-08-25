@@ -27,11 +27,11 @@ class BaseResource(ABC, Resource):
 
     @property
     @abstractmethod
-    def read_role_required(self) -> str:...
+    def read_roles_required(self) -> list[str]:...
 
     @property
     @abstractmethod
-    def write_role_required(self) -> str:...
+    def write_roles_required(self) -> list[str]:...
 
     @auth.login_required
     def get(self, id: Optional[int] = None) -> Union[dict, list]:
@@ -47,7 +47,7 @@ class BaseResource(ABC, Resource):
         """
         #   Can't use decorators with arguments in base classes before the properties are redefined
         #   in child classes
-        if not get_user_role() == self.read_role_required:
+        if not get_user_role() in self.read_roles_required:
             return "Forbidden", 403
 
         if id is None:
@@ -70,7 +70,7 @@ class BaseResource(ABC, Resource):
         """
         #   Can't use decorators with arguments in base classes before the properties are redefined
         #   in child classes
-        if not get_user_role() == self.write_role_required:
+        if not get_user_role() in self.write_roles_required:
             return "Forbidden", 403
 
         data = request.get_json()
@@ -81,5 +81,37 @@ class BaseResource(ABC, Resource):
             return "Data validation errors: {}".format(errors), 400
 
         result = self.manager.create_item(self.request_schema().dump(data))
+        return self.response_schema().dump(result)
+
+    @auth.login_required
+    def delete(self, id: int):
+        """
+        Issue a delete statement on a resource
+
+        Args:
+            id: numeric identifier
+
+        Returns:
+            Content of the deleted item
+        """
+        if not get_user_role() in self.write_roles_required:
+            return "Forbidden", 403
+
+        result = self.manager.delete_item(id)
+        return self.response_schema().dump(result)
+
+    @auth.login_required
+    def put(self, id: int):
+        if not get_user_role() in self.write_roles_required:
+            return "Forbidden", 403
+
+        data = request.get_json()
+
+        #   Can't validate the schema with a decorator while using a base resource
+        errors = self.request_schema().validate(data)
+        if errors:
+            return "Data validation errors: {}".format(errors), 400
+
+        result = self.manager.modify_item(id, self.request_schema().dump(data))
         return self.response_schema().dump(result)
 
