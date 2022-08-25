@@ -140,8 +140,8 @@ cython_debug/
 # Vim swap files
 *.swp
 
-# Shell files for now
-*.sh
+# Top-level Shell files for now
+/*.sh
 
 # CMD shell files
 *.cmd
