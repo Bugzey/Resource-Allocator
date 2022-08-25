@@ -48,7 +48,6 @@ Feature brainstorm:
 	* [ ] allocation - resource X user X iteration X exact date
 
 * [ ] endpoints:
-	* [ ] /user - list own info (shortcut for user/<current user id> ?
 	* [ ] /users/ - list all users (admin required)
 	* [X] /resource/ - list all resources
 	* [X] /resource_group/ - (?)

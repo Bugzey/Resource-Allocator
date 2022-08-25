@@ -5,7 +5,7 @@ Database models creation
 from enum import Enum
 import sqlalchemy as db
 from sqlalchemy import (
-    Column, String, Integer, Date, DateTime, ForeignKey, func, 
+    Column, String, Integer, Date, DateTime, ForeignKey, func, Boolean,
 )
 from sqlalchemy import orm
 from sqlalchemy.orm import(
@@ -50,16 +50,6 @@ class UserModel(Base):
     role = orm.relationship("RoleModel")
 
 
-class IterationModel(Base):
-    __tablename__ = "iteration"
-    pass
-
-
-class RequestModel(Base):
-    __tablename__ = "request"
-    pass
-
-
 class ResourceModel(Base):
     __tablename__ = "resource"
     name = Column(String(255), nullable = False, unique = True)
@@ -69,12 +59,24 @@ class ResourceModel(Base):
 class ResourceGroupModel(Base):
     __tablename__ = "resource_group"
     name = Column(String(255), nullable = False, unique = True)
+    is_top_level = Column(Boolean, nullable = False, server_default = "false")
+    top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
 
 
 class ResourceToGroupModel(Base):
     __tablename__ = "resource_to_group"
     resource_id = Column(Integer, ForeignKey("resource.id"))
     resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
+
+
+class IterationModel(Base):
+    __tablename__ = "iteration"
+    pass
+
+
+class RequestModel(Base):
+    __tablename__ = "request"
+    pass
 
 
 class Allocation(Base):
