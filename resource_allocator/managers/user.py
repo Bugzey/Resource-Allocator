@@ -98,6 +98,7 @@ def role_required(role_name: str) -> Callable:
                 .query(RoleModel.id) \
                 .where(RoleModel.role == role_name) \
                 .scalar()
+
             if not user.role_id == required_role_id:
                 return "Forbidden", 403
 

@@ -13,7 +13,9 @@ from resource_allocator.managers.request import RequestManager
 from resource_allocator.managers.resource import ResourceManager, ResourceGroupManager
 from resource_allocator.managers.resource_to_group import ResourceToGroupManager
 from resource_allocator.managers.user import UserManager
-from resource_allocator.models import metadata, populate_enums
+from resource_allocator.models import (
+    metadata, populate_enums, AllocationModel, IterationModel,
+)
 from resource_allocator.utils.db import change_schema
 
 metadata = change_schema(metadata, schema = "resource_allocator_test")
@@ -112,4 +114,12 @@ class AllocationManagerTestCase(unittest.TestCase):
 
     def test_automatic_allocation(self):
         result = AllocationManager.automatic_allocation(self.allocation_args)
+        self.assertTrue(isinstance(result, list))
+        self.assertEqual(len(result), 2) # 2 days
+
+        #   Result is written to the database
+        self.assertEqual(sess.query(AllocationModel).all(), result)
+
+        #   Iteration is now closed for requests
+        self.assertFalse(sess.get(IterationModel, 1).accepts_requests)
 

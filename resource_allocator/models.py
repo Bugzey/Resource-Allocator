@@ -50,12 +50,6 @@ class UserModel(Base):
     role = orm.relationship("RoleModel")
 
 
-class ResourceModel(Base):
-    __tablename__ = "resource"
-    name = Column(String(255), nullable = False, unique = True)
-    top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
-
-
 class ResourceGroupModel(Base):
     __tablename__ = "resource_group"
     name = Column(String(255), nullable = False, unique = True)
@@ -73,6 +67,16 @@ class ResourceToGroupModel(Base):
     )
 
 
+class ResourceModel(Base):
+    __tablename__ = "resource"
+    name = Column(String(255), nullable = False, unique = True)
+    top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
+    resource_groups = relationship(
+        "ResourceGroupModel",
+        secondary = ResourceToGroupModel.__table__,
+    )
+
+
 class IterationModel(Base):
     __tablename__ = "iteration"
     start_date= Column(Date, nullable = False)
@@ -87,6 +91,7 @@ class RequestModel(Base):
     requested_date = Column(Date, nullable = False)
     user_id = Column(Integer, ForeignKey("user.id"), nullable = False)
     requested_resource_id = Column(Integer, ForeignKey("resource.id"))
+    requested_resource = relationship("ResourceModel")
     requested_resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
 
 
@@ -97,8 +102,7 @@ class AllocationModel(Base):
     user_id = Column(Integer, ForeignKey("user.id"), nullable = False)
     source_request_id = Column(Integer, ForeignKey("request.id"), nullable = False)
     allocated_resource_id = Column(Integer, ForeignKey("resource.id"))
-    points = Column(Integer, nullable = False)
-    total_points = Column(Integer, nullable = False)
+    points = Column(Integer)
 
 
 def populate_enums(

@@ -5,6 +5,7 @@ from resource_allocator.resources.resource import (
 from resource_allocator.resources.iteration import IterationResource
 from resource_allocator.resources.request import RequestResource
 from resource_allocator.resources.resource_to_group import ResourceToGroupResource
+from resource_allocator.resources.allocation import AllocationResource
 
 routes = (
     (RegisterUser, "/register/"),
@@ -14,5 +15,10 @@ routes = (
     (ResourceToGroupResource, "/resource_to_group/", "/resource_to_group/<int:id>"),
     (IterationResource, "/iterations/", "/iterations/<int:id>"),
     (RequestResource, "/requests/", "/requests/<int:id>"),
+    (AllocationResource,
+        "/allocation/",
+        "/allocation/<int:id>",
+        "/allocation/automatic_allocation"
+    ),
 )
 

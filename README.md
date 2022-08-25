@@ -55,18 +55,21 @@ Feature brainstorm:
 	* [X] /iteration/ - create, list
 	* [X] /request/ - post a request for a resource
 	* [X] /resource_to_group/ - many-to-many mapping
-	* [ ] /allocation/ - start the automatic allocation, be able to pass overrides
+	* [X] /allocation/ - start the automatic allocation, be able to pass overrides
 
-* [ ] allocation algorithm - initial + partial addition?
+* [X] allocation algorithm - initial + partial addition?
 	* [ ] apply overrides without question
-	* [ ] distribute weights according to request preferences - each user has 10 points
+	* [X] distribute weights according to request preferences - each user has 10 points
 	* [ ] assign an additional 2 points to history - if the person is assigned to the previous
 	  last resource they used or were assigned to
-	* [ ] Use simplex algorithm? Alternatively try to sort days by possible preference points
+	* [X] Use simplex algorithm? Alternatively try to sort days by possible preference points
 	  (getting combinatorical here)
 
 * [ ] Third-party integration
 	* [ ] Optional log-in via Azure Active Directory (AD) for a specific Azure tenant
+
+* [ ] Outstanding issues
+	* [ ] Limit standard users to only see and modify their own data
 
 
 ##	Project Status:
