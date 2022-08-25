@@ -20,7 +20,7 @@ class AllocationRequestSchema(Schema):
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
-        iteration = IterationModel.get(value)
+        iteration = sess.get(IterationModel, value)
         if not iteration:
             raise ValidationError(f"Invalid iteration: {value}")
 
@@ -41,7 +41,7 @@ class AllocationRequestSchema(Schema):
 
     @validates_schema
     def validate_iteration_date(self, data, **kwargs):
-        iteration = sess.get(IterationModel, date["iteration_id"])
+        iteration = sess.get(IterationModel, data["iteration_id"])
         date = data["date"]
         if not (date >= iteration.start_date and date <= iteration.end_date):
             raise ValidationError(
@@ -49,7 +49,16 @@ class AllocationRequestSchema(Schema):
             )
 
         #   Unique constraints - a resource OR user cannot be allocated again for a single day
-        #   TODO
+        resource_allocated = (
+            (AllocationModel.date == date) &
+            (AllocationModel.allocated_resource_id == data["allocated_resource_id"])
+        )
+        user_allocated = (
+            (AllocationModel.date == date) &
+            (AllocationModel.user_id == data["user_id"])
+        )
+        if sess.query(AllocationModel).where(resource_allocated | user_allocated).first():
+            raise ValidationError(f"User or resource already allocated for date {data['date']}")
 
 
 class AllocationAutomaticAllocationSchema(Schema):
