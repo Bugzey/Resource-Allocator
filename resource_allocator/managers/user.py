@@ -4,16 +4,27 @@ Logic manager for user-related options
 
 from collections.abc import Callable
 from functools import wraps
+import logging
+from typing import Any
 
 from flask import request
 from flask_httpauth import HTTPTokenAuth
 import jwt
+import requests as req
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from resource_allocator.db import sess
 from resource_allocator.models import UserModel, RoleModel
-from resource_allocator.utils.auth import generate_token, parse_token
-from resource_allocator.config import SECRET
+from resource_allocator.utils.auth import (
+    generate_token, parse_token, build_azure_ad_auth_url, build_azure_ad_token_request,
+    azure_configured,
+)
+from resource_allocator.config import (
+    SECRET, AAD_CLIENT_ID, AAD_CLIENT_SECRET, TENANT_ID, SERVER_NAME, REDIRECT_URI, AZURE_CONFIGURED
+)
+
+logger = logging.getLogger(__name__)
+
 
 class UserManager:
     @staticmethod
@@ -40,7 +51,68 @@ class UserManager:
         if not check_password_hash(user.password_hash, str(data["password"])):
             return "Invalid password", 401
 
-        return {"token": generate_token(user.id, secret = SECRET)}
+        return {"id": user.id, "token": generate_token(user.id, secret = SECRET)}
+
+    @staticmethod
+    @azure_configured(AZURE_CONFIGURED)
+    def login_azure_init() -> dict[str, str]:
+        """
+        Initiate or complete an Azure Active Directory login
+        """
+        return {"auth_url": build_azure_ad_auth_url(
+            tenant_id = TENANT_ID, aad_client_id = AAD_CLIENT_ID, redirect_uri = REDIRECT_URI,
+        )}
+
+    @staticmethod
+    @azure_configured(AZURE_CONFIGURED)
+    def login_azure_finish(data: dict) -> dict[str, str]:
+        """
+        Finish the Azure Active Directory login by consuming an authorization code in exchange for
+        an access token
+
+        Args:
+            data: dict: API request json. Must contain the "code" key and value
+        """
+        auth_request = build_azure_ad_token_request(
+            code = data["code"],
+            tenant_id = TENANT_ID,
+            aad_client_id = AAD_CLIENT_ID,
+            aad_client_secret = AAD_CLIENT_SECRET,
+            redirect_uri = REDIRECT_URI,
+            scopes = None,  # might be integrated in the future
+        )
+        with req.session() as req_sess:
+            auth_response = req_sess.send(auth_request.prepare())
+            auth_response_json = auth_response.json()
+            if not auth_response.ok:
+                raise RuntimeError(
+                    f"Bad response returned when authenticating Azure Active Directory user: "
+                    f"{auth_response_json}"
+                )
+            azure_token = auth_response_json["access_token"]
+            user_response = get_azure_user_info(azure_token)
+
+        user = sess.query(UserModel).where(UserModel.email == user_response["mail"]).first()
+
+        if not user:
+            logger.info(
+                f"User {user_response['mail']} requested login but is not registered. Will "
+                f"register automatically"
+            )
+
+            role_id = sess.query(RoleModel.id).where(RoleModel.role == "user").scalar()
+
+            user = UserModel(
+                email = user_response["mail"],
+                password_hash = None,
+                role_id = role_id,
+                first_name = user_response["givenName"],
+                last_name = user_response["surname"],
+            )
+            sess.add(user)
+            sess.flush()
+
+        return {"id": user.id, "token": generate_token(user.id, secret = SECRET)}
 
 
 auth = HTTPTokenAuth(scheme = "Bearer")
@@ -105,4 +177,27 @@ def role_required(role_name: str) -> Callable:
             return fun(*args, **kwargs)
         return wrapped
     return wrapper
+
+
+def get_azure_user_info(azure_token: str) -> dict[str, Any]:
+    """
+    Get info on the current Azure Active Directory user from the Graph REST API
+
+    Reference: https://learn.microsoft.com/en-us/graph/api/user-get?view=graph-rest-1.0&tabs=http
+
+    Args:
+        azure_token: access_token from logging in
+
+    Returns:
+        dict: dictionary of basic user properties
+    """
+    user = req.get(
+        url = "https://graph.microsoft.com/v1.0/me",
+        header = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Bearer {azure_token}"
+        },
+    )
+    return user.json()
 
