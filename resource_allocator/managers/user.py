@@ -193,7 +193,7 @@ def get_azure_user_info(azure_token: str) -> dict[str, Any]:
     """
     user = req.get(
         url = "https://graph.microsoft.com/v1.0/me",
-        header = {
+        headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Authorization": f"Bearer {azure_token}"

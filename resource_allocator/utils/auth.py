@@ -142,6 +142,7 @@ def build_azure_ad_token_request(
     request = req.Request(
         method = "POST",
         url = url,
+        headers = headers,
         data = params,
     )
     return request
