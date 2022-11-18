@@ -65,10 +65,44 @@ class UserManager:
 
     @staticmethod
     @azure_configured(AZURE_CONFIGURED)
+    def _register_azure(user_response: dict[str, Any]) -> dict[str, str]:
+        """
+        Register a new Azure Active Directory user using the user response from Azure. This method
+        should remain private
+
+        Args:
+            user_response: req.Response object as returned by the /me Microsoft Graph endpoint. More
+                info:
+                https://learn.microsoft.com/en-us/graph/api/user-get?view=graph-rest-1.0&tabs=http#response-2
+
+        Returns:
+            models.UserModel: registered user model
+        """
+        logger.info(
+            f"User {user_response['mail']} requested login but is not registered. Will "
+            f"register automatically"
+        )
+
+        role_id = sess.query(RoleModel.id).where(RoleModel.role == "user").scalar()
+
+        user = UserModel(
+            email = user_response["mail"].lower(),  # can have capitals in Azure AD
+            password_hash = None,
+            first_name = user_response["givenName"],
+            last_name = user_response["surname"],
+            role_id = role_id,
+            is_external = True,
+        )
+        sess.add(user)
+        sess.flush()
+        return user
+
+    @staticmethod
+    @azure_configured(AZURE_CONFIGURED)
     def login_azure_finish(data: dict) -> dict[str, str]:
         """
         Finish the Azure Active Directory login by consuming an authorization code in exchange for
-        an access token
+        an access token. We do not store any tokens.
 
         Args:
             data: dict: API request json. Must contain the "code" key and value
@@ -95,22 +129,10 @@ class UserManager:
         user = sess.query(UserModel).where(UserModel.email == user_response["mail"]).first()
 
         if not user:
-            logger.info(
-                f"User {user_response['mail']} requested login but is not registered. Will "
-                f"register automatically"
-            )
+            user = UserManager._register_azure(user_response)
 
-            role_id = sess.query(RoleModel.id).where(RoleModel.role == "user").scalar()
-
-            user = UserModel(
-                email = user_response["mail"],
-                password_hash = None,
-                role_id = role_id,
-                first_name = user_response["givenName"],
-                last_name = user_response["surname"],
-            )
-            sess.add(user)
-            sess.flush()
+        if not user.is_external:
+            return "User is not external; use password login", 400
 
         return {"id": user.id, "token": generate_token(user.id, secret = SECRET)}
 

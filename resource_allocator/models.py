@@ -43,11 +43,18 @@ class RoleModel(Base):
 class UserModel(Base):
     __tablename__ = "user"
     email = db.Column(db.String(255), nullable = False, unique = True)
-    password_hash = db.Column(db.String(255), nullable = False)
+    password_hash = db.Column(db.String(255), nullable = True)
     first_name = db.Column(db.String(255), nullable = False)
     last_name = db.Column(db.String(255), nullable = False)
     role_id = db.Column(db.Integer, db.ForeignKey("role.id"), nullable = False)
+    is_external = db.Column(db.Boolean, nullable = False, server_default = "false")
     role = orm.relationship("RoleModel")
+    __table_args__ = (
+        db.CheckConstraint(
+            "password_hash is not NULL or is_external is TRUE",
+            name = "check_internal_or_external"
+        ),
+    )
 
 
 class ResourceGroupModel(Base):
