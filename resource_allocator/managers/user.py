@@ -40,7 +40,7 @@ class UserManager:
         sess.add(user)
         sess.flush()
 
-        return {"token": generate_token(user.id, secret = SECRET)}
+        return {"id": user.id, "token": generate_token(user.id, secret = SECRET)}
 
     @staticmethod
     def login(data: dict) -> dict[str, str]:
@@ -130,6 +130,9 @@ class UserManager:
 
         if not user:
             user = UserManager._register_azure(user_response)
+
+        if user.email != data["email"].lower():
+            return "Requested email is not the same as Azure AD response email.", 400
 
         if not user.is_external:
             return "User is not external; use password login", 400

@@ -84,7 +84,10 @@ class UserManagerTestCase(unittest.TestCase):
         req_session.__enter__.return_value = auth_response
         get_azure_user_info.return_value = self.azure_response
 
-        result = user.UserManager.login_azure_finish(data = {"code": "some_code"})
+        result = user.UserManager.login_azure_finish(data = {
+            "email": self.data["email"],
+            "code": "some_code",
+        })
         self.assertTrue(isinstance(result, dict))
         self.assertIn("token", result.keys())
 

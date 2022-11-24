@@ -7,7 +7,8 @@ from flask_restful import Resource
 
 from resource_allocator.managers.user import UserManager
 from resource_allocator.schemas.user import (
-    RegisterUserRequestSchema, LoginUserRequestSchema,
+    RegisterUserRequestSchema, LoginUserRequestSchema, LoginUserResponseSchema,
+    LoginUserAzureRequestSchema,
 )
 from resource_allocator.utils.schema import validate_schema
 
@@ -31,8 +32,8 @@ class RegisterUser(Resource):
             dict: dictionary with a Bearer token
         """
         data = request.get_json()
-        token = UserManager.register(data)
-        return token
+        result = UserManager.register(data)
+        return LoginUserResponseSchema().dump(result)
 
 
 class LoginUser(Resource):
@@ -54,6 +55,24 @@ class LoginUser(Resource):
             dict: dictionary with a Bearer token
         """
         data = request.get_json()
-        token = UserManager.login(data)
-        return token
+        result = UserManager.login(data)
+        return LoginUserResponseSchema().dump(result)
+
+
+class LoginUserAzure(Resource):
+    """
+    API Endpoint for logging in and implicitly registering external users via Azure Active Directory
+
+    Methods:
+        get: get request that returns an authentication URL that users must visit
+        post: finish the Azure log-in process by consuming an authorization code
+    """
+    def get(self) -> dict:
+        return UserManager.login_azure_init()
+
+    @validate_schema(LoginUserAzureRequestSchema)
+    def post(self) -> dict:
+        data = request.get_json()
+        result = UserManager.login_azure_finish(data)
+        return LoginUserResponseSchema().dump(result)
 

@@ -40,13 +40,25 @@ class LoginUserRequestSchema(Schema):
     password = fields.String(required = True)
 
 
+class LoginUserResponseSchema(Schema):
+    id = fields.Integer()
+    token = fields.String()
+
+
+class LoginUserAzureRequestSchema(Schema):
+    email = fields.Email(required = True)
+    code = fields.String(required = True)
+
+
 class UserRequestSchema(BaseSchema):
     pass
 
-class UserResponseSChema(BaseSchema):
+
+class UserResponseSchema(BaseSchema):
     email = fields.Email()
     first_name = fields.String()
     last_name = fields.String()
     role_id = fields.Integer()
     role = fields.Dict()
+    is_external = fields.Boolean()
 
