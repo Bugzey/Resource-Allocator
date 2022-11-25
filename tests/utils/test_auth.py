@@ -54,7 +54,10 @@ class AzureConfiguredTestCase(unittest.TestCase):
         @auth.azure_configured(False)
         def some_fun(arg): return arg
 
-        self.assertRaisesRegex(Exception, "not configured", some_fun, "bla")
+        result = some_fun("bla")
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[1], 400)
+        self.assertIn("not configured", result[0])
 
 
 class BuildAzureADAuthUrlTestCase(unittest.TestCase):

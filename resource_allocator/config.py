@@ -20,3 +20,6 @@ AZURE_CONFIGURED = AAD_CLIENT_ID is not None and AAD_CLIENT_SECRET is not None \
     and REDIRECT_URI is not None and SERVER_NAME is not None \
     and TENANT_ID is not None
 
+#   Local logins enabled
+LOCAL_LOGIN_ENABLED = os.environ.get("LOCAL_LOGIN_ENABLED") in (None, "1", "yes", "true")
+

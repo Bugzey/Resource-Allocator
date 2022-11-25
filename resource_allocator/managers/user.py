@@ -17,10 +17,11 @@ from resource_allocator.db import sess
 from resource_allocator.models import UserModel, RoleModel
 from resource_allocator.utils.auth import (
     generate_token, parse_token, build_azure_ad_auth_url, build_azure_ad_token_request,
-    azure_configured,
+    azure_configured, check_configured,
 )
 from resource_allocator.config import (
-    SECRET, AAD_CLIENT_ID, AAD_CLIENT_SECRET, TENANT_ID, SERVER_NAME, REDIRECT_URI, AZURE_CONFIGURED
+    SECRET, AAD_CLIENT_ID, AAD_CLIENT_SECRET, TENANT_ID, SERVER_NAME, REDIRECT_URI,
+    AZURE_CONFIGURED, LOCAL_LOGIN_ENABLED,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class UserManager:
     @staticmethod
+    @check_configured(LOCAL_LOGIN_ENABLED, 400, "Local logins are not enabled on this server")
     def register(data: dict) -> dict[str, str]:
         data = data.copy()
         data["password_hash"] = generate_password_hash(str(data["password"]))
@@ -43,6 +45,7 @@ class UserManager:
         return {"id": user.id, "token": generate_token(user.id, secret = SECRET)}
 
     @staticmethod
+    @check_configured(LOCAL_LOGIN_ENABLED, 400, "Local logins are not enabled on this server")
     def login(data: dict) -> dict[str, str]:
         user = sess.query(UserModel).where(UserModel.email == data["email"]).first()
         if not user:

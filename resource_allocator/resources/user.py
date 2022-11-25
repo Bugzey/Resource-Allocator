@@ -33,6 +33,11 @@ class RegisterUser(Resource):
         """
         data = request.get_json()
         result = UserManager.register(data)
+
+        #   In case manager returns ("message", error_code)
+        if len(result) > 1:
+            return result
+
         return LoginUserResponseSchema().dump(result)
 
 
@@ -56,6 +61,11 @@ class LoginUser(Resource):
         """
         data = request.get_json()
         result = UserManager.login(data)
+
+        #   In case manager returns ("message", error_code)
+        if len(result) > 1:
+            return result
+
         return LoginUserResponseSchema().dump(result)
 
 
@@ -74,5 +84,10 @@ class LoginUserAzure(Resource):
     def post(self) -> dict:
         data = request.get_json()
         result = UserManager.login_azure_finish(data)
+
+        #   In case manager returns ("message", error_code)
+        if len(result) > 1:
+            return result
+
         return LoginUserResponseSchema().dump(result)
 

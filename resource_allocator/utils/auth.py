@@ -46,13 +46,16 @@ def parse_token(token: str, secret: str) -> dict:
     return parsed_token
 
 
-def azure_configured(ok: bool):
+def check_configured(ok: bool, error_code: int = 400, error_message: str | None = None):
     """
-    Wrapper to check if Azure integration is configured. Will raise an Exception if it is not.
+    Generic decorator to check if a condition is fulfilled and optionally return a message when
+    calling the function
 
     Args:
-        azure_configured: bool: whether all variables are configured. The value of
-            config.AZURE_CONFIGURED should be passed
+        ok: bool: the condition to check. If true - execute the function. Otherwise, return the
+            error_code and an optional error_message
+        error_code: int: what HTTP code to return when the ok is False [default: 400]
+        error_message: str: message to return when ok is False [default: None]
     """
     def wrapper(fun):
         @wraps(fun)
@@ -60,13 +63,28 @@ def azure_configured(ok: bool):
             if ok:
                 return fun(*args, **kwargs)
 
-            raise Exception(
-                "Azure Active Directory integration is not configured. Contact your administrator "
-                "for more info"
-            )
+            return error_message, error_code
 
         return wrapped
     return wrapper
+
+
+def azure_configured(ok: bool):
+    """
+    Wrapper to check if Azure integration is configured. Will raise an Exception if it is not.
+
+    This wraps check_configured.
+
+    Args:
+        ok: bool: whether all variables are configured. The value of config.AZURE_CONFIGURED should
+            be passed
+    """
+    return check_configured(
+        ok,
+        error_code = 400,
+        error_message = "Azure Active Directory integration is not configured. Contact your "
+            "administrator for more info."
+    )
 
 
 def build_azure_ad_auth_url(

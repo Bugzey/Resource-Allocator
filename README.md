@@ -56,6 +56,9 @@ set:
 To use `utils/azure_*` debug scripts, one must also specify a valid user email via the `AZURE_EMAIL`
 environment variable.
 
+Local log-ins can be disabled by setting the environment variable `LOCAL_LOGIN_ENABLED` to anything
+other than "1", "yes" or "true". If not set, it defaults to "true".
+
 Finally, the application assumes that a schema named `resource_allocator` exists in the database. It
 is NOT created when running database migrations.
 
