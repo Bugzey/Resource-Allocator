@@ -27,6 +27,11 @@ class UserManagerTestCase(unittest.TestCase):
             "first_name": "bla",
             "last_name": "bla",
         }
+        self.azure_response = {
+            "mail": self.data["email"],
+            "givenName": self.data["first_name"],
+            "surname": self.data["last_name"],
+        }
 
     def tearDown(self):
         sess.rollback()
@@ -58,6 +63,40 @@ class UserManagerTestCase(unittest.TestCase):
         registration = user.UserManager.register(self.data)
         result = user.UserManager.login({**self.data, "email": "bla@example.com"})
         self.assertIn("No such user", result[0]) # message
+
+    def test_register_azure(self):
+        result = user.UserManager._register_azure(self.azure_response)
+        self.assertTrue(isinstance(result, models.UserModel))
+
+        users = sess.query(models.UserModel).all()
+        self.assertEqual(len(users), 1)
+        self.assertEqual(users[0].email, self.data["email"])
+        self.assertIsNone(users[0].password_hash)
+        self.assertIsNotNone(users[0].role_id)
+        self.assertTrue(users[0].is_external)
+
+    @patch("resource_allocator.managers.user.get_azure_user_info")
+    @patch("resource_allocator.managers.user.req.session")
+    def test_login_azure_finish(self, req_session: MagicMock, get_azure_user_info: MagicMock):
+        auth_response = MagicMock()
+        auth_response.send.return_value.ok = True
+        auth_response.send.return_value.json.return_value = {"access_token": "access_token"}
+        req_session.__enter__.return_value = auth_response
+        get_azure_user_info.return_value = self.azure_response
+
+        result = user.UserManager.login_azure_finish(data = {
+            "email": self.data["email"],
+            "code": "some_code",
+        })
+        self.assertTrue(isinstance(result, dict))
+        self.assertIn("token", result.keys())
+
+        users = sess.query(models.UserModel).all()
+        self.assertEqual(len(users), 1)
+        self.assertEqual(users[0].email, self.data["email"])
+        self.assertIsNone(users[0].password_hash)
+        self.assertIsNotNone(users[0].role_id)
+        self.assertTrue(users[0].is_external)
 
 
 class VerifyTokenTestCase(unittest.TestCase):

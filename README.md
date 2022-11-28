@@ -42,8 +42,25 @@ development/production use and for running tests. The following variables are ma
 |DATABASE|Database (catalog) name to use|
 |SECRET|Long string to use as an application secret for encoding and decoding tokens|
 
-Furthermore, the application assumes that a schema named `resource_allocator` exists in the
-database. It is NOT created when running database migrations.
+In order to use Azure Active Directory (AD) integration, the following additional variables must be
+set:
+
+|Environment variable|Description|
+|---|---|
+|AAD_CLIENT_ID|Azure AD application (client) ID|
+|AAD_CLIENT_SECRET|Azure AD application (client) Secret|
+|REDIRECT_URI|Redirect URI set in Azure for the app (should be `https://localhost:5000/` when testing)|
+|TENANT_ID|Azure Tenant ID whose registered users can log in|
+|SERVER_NAME|Full URL of the server where `resource_allocator` is deployed|
+
+To use `utils/azure_*` debug scripts, one must also specify a valid user email via the `AZURE_EMAIL`
+environment variable.
+
+Local log-ins can be disabled by setting the environment variable `LOCAL_LOGIN_ENABLED` to anything
+other than "1", "yes" or "true". If not set, it defaults to "true".
+
+Finally, the application assumes that a schema named `resource_allocator` exists in the database. It
+is NOT created when running database migrations.
 
 
 ##	Usage
@@ -69,6 +86,7 @@ Several API endpoints are exposed that accept GET, POST, PUT and DELETE HTTP req
 	- `/register/`
 - Login User:
 	- `/login/`
+	- `/login_azure/`
 - Resource:
 	- `/resources/`
 	- `/resources/<int:id>`
@@ -115,29 +133,31 @@ Outstanding features and associated tasks will be tallied in this README file un
 
 Feature brainstorm:
 
-* [ ] database objects
+* [X] database objects
 	* [X] user
 	* [X] resource
 	* [X] resource group (can be recursive)
 	* [X] iteration - type of time iteration to request resources for (?)
 	* [X] request - pending user requests
 	* [X] resource to group - many-to-many mapping
-	* [ ] allocation - resource X user X iteration X exact date
+	* [X] allocation - resource X user X iteration X exact date
 
 * [ ] endpoints:
-	* [ ] /users/ - list all users (admin required)
-	* [X] /resource/ - list all resources
-	* [X] /resource_group/ - (?)
-	* [X] /iteration/ - create, list
-	* [X] /request/ - post a request for a resource
-	* [X] /resource_to_group/ - many-to-many mapping
-	* [X] /allocation/ - start the automatic allocation, be able to pass overrides
+	* [ ] `/users/` - list all users (admin required)
+	* [ ] `/user/` - get the current user
+	* [X] `/resource/` - list all resources
+	* [X] `/resource_group/` - (?)
+	* [X] `/iteration/` - create, list
+	* [X] `/request/` - post a request for a resource
+	* [X] `/resource_to_group/` - many-to-many mapping
+	* [X] `/allocation/` - start the automatic allocation, be able to pass overrides
 
 * [X] allocation algorithm - initial + partial addition?
 	* [ ] apply overrides without question
 	* [X] distribute weights according to request preferences - each user has 10 points
 	* [ ] assign an additional 2 points to history - if the person is assigned to the previous
 	  last resource they used or were assigned to
+	* [ ] assign points based on request recency
 	* [X] Use simplex algorithm? Alternatively try to sort days by possible preference points
 	  (getting combinatorical here)
 
