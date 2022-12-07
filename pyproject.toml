@@ -18,6 +18,7 @@ dependencies = [
 	"flask_httpauth",
 	"flask_restful",
 	"marshmallow",
+	"requests",
 ]
 
 [project.optional-dependencies]
