@@ -11,7 +11,6 @@ import jwt
 from resource_allocator import models
 from resource_allocator.config import SECRET
 from resource_allocator.db import engine, sess
-from resource_allocator.main import create_app
 from resource_allocator.managers import user
 from resource_allocator.utils.db import change_schema
 
@@ -48,6 +47,18 @@ class UserManagerTestCase(unittest.TestCase):
         self.assertNotEqual(users[0].password_hash, self.data["password"])
         self.assertIsNotNone(users[0].role_id)
 
+        #   First user is admin
+        result = user.UserManager.register({**self.data, "email": "test2@example.com"})
+        self._assert_first_user_is_admin()
+
+    def _assert_first_user_is_admin(self):
+        roles = sess.query(models.RoleModel).all()
+        admin_role = next((item.id for item in roles if item.role == "admin"))
+        user_role = next((item.id for item in roles if item.role == "user"))
+        users = sess.query(models.UserModel).all()
+        self.assertEqual(users[0].role_id, admin_role)
+        self.assertEqual(users[1].role_id, user_role)
+
     def test_login(self):
         registration = user.UserManager.register(self.data)
         result = user.UserManager.login(self.data)
@@ -74,6 +85,10 @@ class UserManagerTestCase(unittest.TestCase):
         self.assertIsNone(users[0].password_hash)
         self.assertIsNotNone(users[0].role_id)
         self.assertTrue(users[0].is_external)
+
+        #   First user is admin
+        result = user.UserManager.register({**self.data, "email": "test2@example.com"})
+        self._assert_first_user_is_admin()
 
     @patch("resource_allocator.managers.user.get_azure_user_info")
     @patch("resource_allocator.managers.user.req.session")
