@@ -1,4 +1,4 @@
 if __name__ == "__main__":
-    from package_name import main
-    main.main()
+    from resource_allocator.main import main
+    main()
 

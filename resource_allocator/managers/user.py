@@ -14,7 +14,7 @@ import requests as req
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from resource_allocator.db import sess
-from resource_allocator.models import UserModel, RoleModel
+from resource_allocator.models import UserModel, RoleModel, RoleEnum
 from resource_allocator.utils.auth import (
     generate_token, parse_token, build_azure_ad_auth_url, build_azure_ad_token_request,
     azure_configured, check_configured,
@@ -35,7 +35,12 @@ class UserManager:
         data["password_hash"] = generate_password_hash(str(data["password"]))
         del data["password"]
 
-        role_id = sess.query(RoleModel.id).where(RoleModel.role == "user").scalar()
+        if sess.query(UserModel).first():
+            role = RoleEnum.user.name
+        else:
+            role = RoleEnum.admin.name
+
+        role_id = sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
         data["role_id"] = role_id
 
         user = UserModel(**data)
@@ -86,7 +91,12 @@ class UserManager:
             f"register automatically"
         )
 
-        role_id = sess.query(RoleModel.id).where(RoleModel.role == "user").scalar()
+        if sess.query(UserModel).first():
+            role = RoleEnum.user.name
+        else:
+            role = RoleEnum.admin.name
+
+        role_id = sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
 
         user = UserModel(
             email = user_response["mail"].lower(),  # can have capitals in Azure AD
