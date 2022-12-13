@@ -5,7 +5,7 @@
 # $4 - requested_resource_id
 # $5 - requested_resource_group_id
 
-if [[ $TOKEN -eq "" ]]
+if [[ $TOKEN == "" ]]
 then
 	stop '$TOKEN not found. Run login.sh'
 fi

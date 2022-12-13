@@ -2,7 +2,7 @@
 # $1 is resource_id
 # $2 is resource_group_id
 
-if [[ $TOKEN -eq "" ]]
+if [[ $TOKEN == "" ]]
 then
 	stop '$TOKEN not found. Run login.sh'
 fi

@@ -1,7 +1,7 @@
 #!/bin/bash
 # $1 - iteration_id
 
-if [[ $TOKEN -eq "" ]]
+if [[ $TOKEN == "" ]]
 then
 	stop '$TOKEN not found. Run login.sh'
 fi
