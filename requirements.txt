@@ -4,7 +4,7 @@ flask
 flask_httpauth
 flask_restful
 marshmallow
-psycopg2-bin
+psycopg2-binary
 pyjwt
 requests
 setuptools
