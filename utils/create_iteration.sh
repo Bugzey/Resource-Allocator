@@ -2,7 +2,7 @@
 # $1 is start_date
 # $2 is end_date
 
-if [[ $TOKEN -eq "" ]]
+if [[ $TOKEN == "" ]]
 then
 	stop '$TOKEN not found. Run login.sh'
 fi

@@ -1,7 +1,7 @@
 #!/bin/bash
 #$1 is group name
 #$2 is top_level_group
-if [[ $TOKEN -eq "" ]]
+if [[ $TOKEN == "" ]]
 then
 	stop '$TOKEN not found. Run login.sh'
 fi
