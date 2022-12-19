@@ -1,7 +1,8 @@
 #!/bin/bash
 if [[ $TOKEN == "" ]]
 then
-	stop '$TOKEN not found. Run login.sh'
+	echo '$TOKEN not found. Run login.sh'
+	exit 1
 fi
 
 curl -v \
