@@ -1,9 +1,12 @@
 import os
 
-URL = "postgresql://{user}:{password}@{server}:{port}/{database}".format(
-    user = os.environ["USER"],
+from sqlalchemy.engine import url
+
+URL = url.URL(
+    drivername = "postgresql",
+    username = os.environ["USER"],
     password = os.environ["PASSWORD"],
-    server = os.environ["SERVER"],
+    host = os.environ["SERVER"],
     port = os.environ["PORT"],
     database = os.environ["DATABASE"],
 )

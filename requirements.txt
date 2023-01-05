@@ -4,6 +4,7 @@ flask
 flask_httpauth
 flask_restful
 marshmallow
+pillow
 psycopg2-binary
 pyjwt
 requests
