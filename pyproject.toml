@@ -19,6 +19,7 @@ dependencies = [
 	"flask_restful",
 	"gunicorn",
 	"marshmallow",
+	"pillow",
 	"psycopg2-binary",
 	"pyjwt",
 	"requests",
