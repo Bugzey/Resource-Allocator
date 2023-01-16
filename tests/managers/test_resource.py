@@ -65,7 +65,7 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
         original_image = original_result.image.image_data
 
         data = self.data.copy() # mutability shenanigans
-        data["image"] = self._make_image(color = 255)
+        data["image"] = {"image": self._make_image(color = 255)}
         result = ResourceGroupManager.modify_item(original_result.id, data)
         self.assertTrue(isinstance(result, ResourceGroupModel))
         self.assertTrue(isinstance(result.image, ImageModel))
