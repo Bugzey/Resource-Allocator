@@ -2,14 +2,15 @@
 Request-related schemas for resource objects
 """
 
-from marshmallow import Schema, fields, validates, ValidationError
+from marshmallow import Schema, fields, validates, validates_schema, ValidationError
 
 from resource_allocator.db import get_session
 from resource_allocator.models import ResourceModel, ResourceGroupModel
 from resource_allocator.schemas.base import BaseSchema
+from resource_allocator.schemas.image import ImageMixInSchema
 
 
-class ResourceRequestSchema(Schema):
+class ResourceRequestSchema(ImageMixInSchema, Schema):
     name = fields.String(required = True)
     top_resource_group_id = fields.Integer(required = True)
 
@@ -24,7 +25,7 @@ class ResourceRequestSchema(Schema):
             raise ValidationError(f"Invalid top_resource_group_id: {value}")
 
 
-class ResourceResponseSchema(BaseSchema):
+class ResourceResponseSchema(ImageMixInSchema, BaseSchema):
     name = fields.String(required = True)
     top_resource_group_id = fields.Integer(required = True)
 
