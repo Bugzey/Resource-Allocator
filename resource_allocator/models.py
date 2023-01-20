@@ -63,7 +63,7 @@ class ResourceGroupModel(Base):
     is_top_level = Column(Boolean, nullable = False, server_default = "false")
     top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
     image_id = Column(Integer, ForeignKey("image.id"))
-    image = relationship("ImageModel")
+    image = relationship("ImageModel", back_populates = "resource_group")
     box_x = Column(Integer)
     box_y = Column(Integer)
     box_width = Column(Integer)
@@ -90,7 +90,7 @@ class ResourceModel(Base):
         secondary = ResourceToGroupModel.__table__,
     )
     image_id = Column(Integer, ForeignKey("image.id"))
-    image = relationship("ImageModel")
+    image = relationship("ImageModel", back_populates = "resource")
     box_x = Column(Integer)
     box_y = Column(Integer)
     box_width = Column(Integer)
@@ -138,6 +138,8 @@ class ImageModel(Base):
     image_type_id = Column(Integer, ForeignKey("image_type.id"), nullable = False)
     image_type = relationship("ImageTypeModel")
     size_bytes = Column(Integer, nullable = False)
+    resource_group = relationship("ResourceGroupModel", back_populates = "image")
+    resource = relationship("ResourceModel", back_populates = "image")
 
 
 def populate_enums(

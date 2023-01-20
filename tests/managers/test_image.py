@@ -2,6 +2,7 @@
 Unit tests for managers.image
 """
 
+import base64
 from io import BytesIO
 import unittest
 
@@ -30,7 +31,7 @@ class ImageManagerTestCase(unittest.TestCase):
             image_bytes_io = BytesIO()
             image.save(image_bytes_io, format = "png")
             image_bytes_io.seek(0)
-            return image_bytes_io.read()
+            return base64.b64encode(image_bytes_io.read())
 
     def tearDown(self):
         sess.rollback()

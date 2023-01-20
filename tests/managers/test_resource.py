@@ -2,6 +2,7 @@
 Tests for managers.base
 """
 
+import base64
 from io import BytesIO
 import unittest
 from unittest.mock import patch, MagicMock
@@ -52,7 +53,7 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
             image_bytes_io = BytesIO()
             image.save(image_bytes_io, format = "png")
             image_bytes_io.seek(0)
-            return image_bytes_io.read()
+            return base64.b64encode(image_bytes_io.read()).decode()
 
     def test_create_resource_group_with_image(self):
         result = ResourceGroupManager.create_item(self.data)

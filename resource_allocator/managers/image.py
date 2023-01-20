@@ -2,6 +2,7 @@
 Image manager
 """
 
+import base64
 from io import BytesIO
 from typing import Optional
 
@@ -45,11 +46,21 @@ class ImageManager(BaseManager):
 
     @classmethod
     def create_item(cls, data: dict) -> db.Table:
+        data["image"] = base64.b64decode(data["image"])
         data = cls._parse_image(data)
         return super().create_item(data)
 
     @classmethod
     def modify_item(cls, id: int, data: dict) -> db.Table:
+        data["image"] = base64.b64decode(data["image"])
         data = cls._parse_image(data)
         return super().modify_item(id, data)
 
+    @classmethod
+    def list_single_item(cls, id: int) -> db.Table:
+        item = super().list_single_item(id)
+        if not isinstance(item, cls.model):
+            return item
+
+        item.__dict__["image"] = base64.b64encode(item.image_data).decode()
+        return item

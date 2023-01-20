@@ -9,7 +9,7 @@ from resource_allocator.models import ImageModel
 from resource_allocator.schemas.base import BaseSchema
 
 class ImageRequestSchema(Schema):
-    image: fields.Field(meatadata = {"type": "string", "format": "byte"})
+    image = fields.String(required = True)
 
 
 class ImageResponseSchema(ImageRequestSchema):
