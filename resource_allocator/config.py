@@ -2,7 +2,7 @@ import os
 
 from sqlalchemy.engine import url
 
-URL = url.URL(
+URL = url.URL.create(
     drivername = "postgresql",
     username = os.environ["USER"],
     password = os.environ["PASSWORD"],
