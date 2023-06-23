@@ -19,6 +19,9 @@ class ConfigTestCase(unittest.TestCase):
         self.kwargs["LOCAL_LOGIN_ENABLED"] = "yes"
         self.kwargs["DB_PORT"] = 12
 
+    def tearDown(self):
+        Config._instance = []
+
     def test_init(self):
         config = Config(**self.kwargs)
 
@@ -36,6 +39,15 @@ class ConfigTestCase(unittest.TestCase):
         self.assertTrue(isinstance(config, Config))
         self.assertTrue(config.LOCAL_LOGIN_ENABLED)
         self.assertTrue(config.AZURE_CONFIGURED)
+
+        #   Singleton test
+        self.assertGreater(len(Config._instance), 0)
+        new_config = Config.from_environment()
+        self.assertTrue(config is new_config)
+
+        #   Again
+        newer_config = Config.get_instance()
+        self.assertTrue(config is newer_config)
 
     def test_from_config(self):
         data = "\n".join(f"{key} = {value}" for key, value in self.kwargs.items())

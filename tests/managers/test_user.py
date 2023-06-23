@@ -9,17 +9,21 @@ from unittest.mock import patch, MagicMock
 import jwt
 
 from resource_allocator import models
-from resource_allocator.config import SECRET
-from resource_allocator.db import engine, sess
+from resource_allocator.config import Config
+from resource_allocator.db import get_session
 from resource_allocator.managers import user
 from resource_allocator.utils.db import change_schema
 
 metadata = change_schema(models.metadata, schema = "resource_allocator_test")
 
+
 class UserManagerTestCase(unittest.TestCase):
     def setUp(self):
-        metadata.create_all(engine)
-        models.populate_enums(metadata, sess)
+        self.config = Config.from_environment()
+        self.sess = get_session()
+        self.engine = self.sess.bind
+        metadata.create_all(self.engine)
+        models.populate_enums(metadata, self.sess)
         self.data = {
             "email": "test@example.com",
             "password": 123456,
@@ -33,15 +37,15 @@ class UserManagerTestCase(unittest.TestCase):
         }
 
     def tearDown(self):
-        sess.rollback()
-        metadata.drop_all(bind = engine)
+        self.sess.rollback()
+        metadata.drop_all(bind=self.engine)
 
     def test_register(self):
         result = user.UserManager.register(self.data)
         self.assertTrue(isinstance(result, dict))
         self.assertIn("token", result.keys())
 
-        users = sess.query(models.UserModel).all()
+        users = self.sess.query(models.UserModel).all()
         self.assertEqual(len(users), 1)
         self.assertEqual(users[0].email, self.data["email"])
         self.assertNotEqual(users[0].password_hash, self.data["password"])
@@ -52,10 +56,10 @@ class UserManagerTestCase(unittest.TestCase):
         self._assert_first_user_is_admin()
 
     def _assert_first_user_is_admin(self):
-        roles = sess.query(models.RoleModel).all()
+        roles = self.sess.query(models.RoleModel).all()
         admin_role = next((item.id for item in roles if item.role == "admin"))
         user_role = next((item.id for item in roles if item.role == "user"))
-        users = sess.query(models.UserModel).all()
+        users = self.sess.query(models.UserModel).all()
         self.assertEqual(users[0].role_id, admin_role)
         self.assertEqual(users[1].role_id, user_role)
 
@@ -79,7 +83,7 @@ class UserManagerTestCase(unittest.TestCase):
         result = user.UserManager._register_azure(self.azure_response)
         self.assertTrue(isinstance(result, models.UserModel))
 
-        users = sess.query(models.UserModel).all()
+        users = self.sess.query(models.UserModel).all()
         self.assertEqual(len(users), 1)
         self.assertEqual(users[0].email, self.data["email"])
         self.assertIsNone(users[0].password_hash)
@@ -106,7 +110,7 @@ class UserManagerTestCase(unittest.TestCase):
         self.assertTrue(isinstance(result, dict))
         self.assertIn("token", result.keys())
 
-        users = sess.query(models.UserModel).all()
+        users = self.sess.query(models.UserModel).all()
         self.assertEqual(len(users), 1)
         self.assertEqual(users[0].email, self.data["email"])
         self.assertIsNone(users[0].password_hash)
@@ -116,33 +120,37 @@ class UserManagerTestCase(unittest.TestCase):
 
 class VerifyTokenTestCase(unittest.TestCase):
     def setUp(self):
+        self.config = Config.get_instance()
         now = dt.datetime.utcnow()
         self.data = {
             "sub": 12,
             "iat": now,
             "exp": now + dt.timedelta(seconds = 3600),
         }
-        self.good_token = jwt.encode(self.data, key = SECRET, algorithm = "HS256")
+        self.good_token = jwt.encode(self.data, key=self.config.SECRET, algorithm = "HS256")
 
-        self.expired_token = jwt.encode({
-            **self.data,
-            "exp": 0,
-        }, key = SECRET, algorithm = "HS256")
+        self.expired_token = jwt.encode(
+            {
+                **self.data,
+                "exp": 0,
+            },
+            key=self.config.SECRET,
+            algorithm="HS256",
+        )
 
-    @patch("resource_allocator.managers.user.sess")
+    @patch("resource_allocator.managers.user.get_session")
     def test_verify_token(self, mock_sess: MagicMock):
         with self.subTest("Good token"):
-            mock_sess.get.return_value = 12
+            mock_sess.return_value.get.return_value = 12
             result = user.verify_token(self.good_token)
             self.assertEqual(result, 12)
-            mock_sess.get.assert_called()
+            mock_sess.return_value.get.assert_called()
 
         with self.subTest("Expired token"):
             result = user.verify_token(self.expired_token)
             self.assertFalse(result)
 
         with self.subTest("Missing user"):
-            mock_sess.get.return_value = None
+            mock_sess.return_value.get.return_value = None
             result = user.verify_token(self.good_token)
             self.assertTrue(result)
-

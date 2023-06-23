@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import os
 from pathlib import Path
 
+from sqlalchemy.orm import Session
 from sqlalchemy.engine import url
 
 
@@ -23,11 +24,23 @@ class Config:
     TENANT_ID: str | None
     URL: str = field(init=False, repr=False)
 
+    _sess: Session = None
     _default_paths = (
         Path("config"),
         Path().home() / ".resource_allocator",
         Path().home() / ".config" / "resource_allocator" / "config",
     )
+    _instance = []
+
+    @classmethod
+    def get_instance(cls) -> "Config":
+        """
+        Get the single active config instance if any
+        """
+        if cls._instance:
+            return cls._instance[0]
+
+        raise RuntimeError("No Config instance initialized")
 
     def __post_init__(self):
         """
@@ -47,12 +60,16 @@ class Config:
             port=self.DB_PORT,
             database=self.DB_DATABASE,
         )
+        self.__class__._instance.append(self)
 
     @classmethod
     def from_environment(cls) -> "Config":
         """
         Create a configuration from environment variables.
         """
+        if cls._instance:
+            return cls._instance[0]
+
         return cls(
             DB_USER=os.environ["DB_USER"],
             DB_PASSWORD=os.environ["DB_PASSWORD"],
@@ -70,6 +87,9 @@ class Config:
 
     @classmethod
     def from_config(cls, path: str | Path) -> "Config":
+        if cls._instance:
+            return cls._instance[0]
+
         with open(path, "r", encoding="utf-8") as cur_file:
             data = cur_file.read()
 

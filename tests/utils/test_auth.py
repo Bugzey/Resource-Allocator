@@ -9,6 +9,7 @@ import requests as req
 
 from resource_allocator.utils import auth
 
+
 class GenerateTokenTestCase(unittest.TestCase):
     def setUp(self):
         self.secret = "some_secret"
@@ -44,14 +45,14 @@ class ValidateTokenTestCase(unittest.TestCase):
 
 class AzureConfiguredTestCase(unittest.TestCase):
     def test_azure_configured_true(self):
-        @auth.azure_configured(True)
+        @auth.azure_configured(lambda: True)
         def some_fun(arg): return arg
 
         result = some_fun("bla")
         self.assertEqual(result, "bla")
 
     def test_azure_configured_false(self):
-        @auth.azure_configured(False)
+        @auth.azure_configured(lambda: False)
         def some_fun(arg): return arg
 
         result = some_fun("bla")
@@ -113,4 +114,3 @@ class BuildAzureADTokenRequest(unittest.TestCase):
         self.assertIn(self.tenant_id, result.url)
         self.assertIn("token", result.url)
         self.assertEqual(result.data["code"], "some_code")
-
