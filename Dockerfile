@@ -1,10 +1,8 @@
 from python:3.10
 
-run git clone https://github.com/Bugzey/Resource-Allocator.git \
-	&& cd Resource-Allocator \
-	&& pip install . \
-	&& cd ../ \
-	&& rm -rf Resource-Allocator/
+copy . .
+
+run pip install .
 
 run pip install gunicorn
 
