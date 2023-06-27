@@ -2,6 +2,8 @@ from python:3.10
 
 copy . .
 
+run pip install --upgrade pip
+
 run pip install .
 
 run pip install gunicorn
