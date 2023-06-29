@@ -1,12 +1,12 @@
 from python:3.10
 
+workdir resource_allocator
+
 copy . .
 
 run pip install --upgrade pip
 
 run pip install .
-
-run pip install gunicorn
 
 expose 5000
 

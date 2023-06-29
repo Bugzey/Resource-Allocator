@@ -20,6 +20,5 @@ docker run --name resource_allocator \
 	-e SERVER_NAME \
 	-e LOCAL_LOGIN_ENABLED \
 	--publish 5000:5000 \
-	--rm \
 	--detach \
 	resource_allocator

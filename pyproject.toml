@@ -17,6 +17,7 @@ dependencies = [
 	"flask",
 	"flask_httpauth",
 	"flask_restful",
+	"gunicorn",
 	"marshmallow",
 	"psycopg2-binary",
 	"pyjwt",
