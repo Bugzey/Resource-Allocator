@@ -6,7 +6,10 @@ from sqlalchemy import pool
 from alembic import context
 
 from resource_allocator.models import metadata
-from resource_allocator.config import URL
+from resource_allocator.config import Config
+
+#   Project config
+project_config = Config.from_environment()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -48,15 +51,15 @@ def run_migrations_offline():
 
     """
     context.configure(
-        url=URL,
+        url=project_config.URL,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
 
-        include_schemas = True,
-        include_name = include_name,
-        version_table_schema = SCHEMA,
-        compare_type = True,
+        include_schemas=True,
+        include_name=include_name,
+        version_table_schema=SCHEMA,
+        compare_type=True,
     )
 
     with context.begin_transaction():
@@ -70,16 +73,17 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    connectable = create_engine(URL)
+    connectable = create_engine(project_config.URL)
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata,
+            connection=connection,
+            target_metadata=target_metadata,
 
-            version_table_schema = SCHEMA,
-            include_schemas = True,
-            include_name = include_name,
-            compare_type = True,
+            version_table_schema=SCHEMA,
+            include_schemas=True,
+            include_name=include_name,
+            compare_type=True,
         )
 
         with context.begin_transaction():
