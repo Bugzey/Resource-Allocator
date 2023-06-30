@@ -11,7 +11,6 @@ from resource_allocator.schemas.base import BaseSchema
 
 class ResourceGroupRequestSchema(Schema):
     name = fields.String(required = True)
-    top_resource_group_id = fields.Integer(required = True)
     is_top_level = fields.Boolean(required = True)
     top_resource_group_id = fields.Integer()
 

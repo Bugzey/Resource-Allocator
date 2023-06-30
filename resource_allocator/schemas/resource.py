@@ -8,6 +8,7 @@ from resource_allocator.db import get_session
 from resource_allocator.models import ResourceModel, ResourceGroupModel
 from resource_allocator.schemas.base import BaseSchema
 
+
 class ResourceRequestSchema(Schema):
     name = fields.String(required = True)
     top_resource_group_id = fields.Integer(required = True)
