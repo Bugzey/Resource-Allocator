@@ -11,6 +11,7 @@ from marshmallow import Schema, fields
 from resource_allocator.main import create_app
 from resource_allocator.utils.schema import *
 
+
 class ValidateSchemaTestCase(unittest.TestCase):
     class SomeSchema(Schema):
         id = fields.Int(required = True)

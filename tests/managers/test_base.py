@@ -9,7 +9,8 @@ import sqlalchemy as db
 from sqlalchemy import (Column, Integer, String)
 from sqlalchemy.orm import declarative_base
 
-from resource_allocator.db import sess, engine
+from resource_allocator.config import Config
+from resource_allocator.db import get_session
 from resource_allocator.models import metadata, Base
 from resource_allocator.utils.db import change_schema
 from resource_allocator.managers.base import BaseManager
@@ -25,14 +26,16 @@ class BaseManagerTestCase(unittest.TestCase):
         model = SomeTable
 
     def setUp(self):
-        metadata.create_all(engine)
+        self.config = Config.from_environment()
+        self.sess = get_session()
+        metadata.create_all(self.sess.bind)
         self.item = {
             "name": "some_item",
         }
 
     def tearDown(self):
-        sess.rollback()
-        metadata.drop_all(engine)
+        self.sess.rollback()
+        metadata.drop_all(self.sess.bind)
 
     def test_create_item(self):
         item = self.SomeManager.create_item(self.item)

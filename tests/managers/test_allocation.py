@@ -6,7 +6,8 @@ import datetime as dt
 import unittest
 from unittest.mock import patch, MagicMock
 
-from resource_allocator.db import sess, engine
+from resource_allocator.config import Config
+from resource_allocator.db import get_session
 from resource_allocator.managers.allocation import AllocationManager
 from resource_allocator.managers.iteration import IterationManager
 from resource_allocator.managers.request import RequestManager
@@ -20,11 +21,16 @@ from resource_allocator.utils.db import change_schema
 
 metadata = change_schema(metadata, schema = "resource_allocator_test")
 
+
 class AllocationManagerTestCase(unittest.TestCase):
     def setUp(self):
-        metadata.drop_all(engine) # in case of errors during setUp
-        metadata.create_all(engine)
-        populate_enums(metadata, sess)
+        self.config = Config.from_environment()
+        self.sess = get_session()
+        self.engine = self.sess.bind
+
+        metadata.drop_all(self.engine) # in case of errors during setUp
+        metadata.create_all(self.engine)
+        populate_enums(metadata, self.sess)
         self.users = [
             {
                 "email": "user1@example.com",
@@ -109,8 +115,8 @@ class AllocationManagerTestCase(unittest.TestCase):
         }
 
     def tearDown(self):
-        sess.rollback()
-        metadata.drop_all(bind = engine)
+        self.sess.rollback()
+        metadata.drop_all(bind=self.engine)
 
     def test_automatic_allocation(self):
         result = AllocationManager.automatic_allocation(self.allocation_args)
@@ -118,8 +124,7 @@ class AllocationManagerTestCase(unittest.TestCase):
         self.assertEqual(len(result), 2) # 2 days
 
         #   Result is written to the database
-        self.assertEqual(sess.query(AllocationModel).all(), result)
+        self.assertEqual(self.sess.query(AllocationModel).all(), result)
 
         #   Iteration is now closed for requests
-        self.assertFalse(sess.get(IterationModel, 1).accepts_requests)
-
+        self.assertFalse(self.sess.get(IterationModel, 1).accepts_requests)

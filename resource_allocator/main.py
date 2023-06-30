@@ -7,8 +7,10 @@ This module is the entry point to the appliation crateing and returning a Flask 
 from flask import Flask
 from flask_restful import Api
 
-from resource_allocator.db import sess
+from resource_allocator.config import Config
+from resource_allocator.db import get_session
 from resource_allocator.resources.routes import routes
+
 
 def create_app() -> Flask:
     """
@@ -20,6 +22,8 @@ def create_app() -> Flask:
     Returns:
         flask.Flask: instantiated Flask application
     """
+    config = Config.from_environment()
+    sess = get_session()
     app = Flask(__name__)
     api = Api(app)
 
@@ -50,4 +54,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

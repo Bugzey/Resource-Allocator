@@ -4,11 +4,12 @@ Allocation-related request schemas
 
 from marshmallow import Schema, fields, validates, validates_schema, ValidationError
 
-from resource_allocator.db import sess
+from resource_allocator.db import get_session
 from resource_allocator.schemas.base import BaseSchema
 from resource_allocator.models import (
     IterationModel, UserModel, RequestModel, ResourceModel, AllocationModel,
 )
+
 
 class AllocationRequestSchema(Schema):
     iteration_id = fields.Integer(required = True)
@@ -20,28 +21,28 @@ class AllocationRequestSchema(Schema):
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
-        iteration = sess.get(IterationModel, value)
+        iteration = get_session().get(IterationModel, value)
         if not iteration:
             raise ValidationError(f"Invalid iteration: {value}")
 
     @validates("user_id")
     def validate_user_id(self, value):
-        if not sess.get(UserModel, value):
+        if not get_session().get(UserModel, value):
             raise ValidationError(f"Invalid user: {value}")
 
     @validates("source_request_id")
     def validate_source_request_id(self, value):
-        if not sess.get(RequestModel, value):
+        if not get_session().get(RequestModel, value):
             raise ValidationError(f"Invalid request: {value}")
 
     @validates("allocated_resource_id")
     def validate_allocated_resource_id(self, value):
-        if not sess.get(ResourceModel, value):
+        if not get_session().get(ResourceModel, value):
             raise ValidationError(f"Invalid resource: {value}")
 
     @validates_schema
     def validate_iteration_date(self, data, **kwargs):
-        iteration = sess.get(IterationModel, data["iteration_id"])
+        iteration = get_session().get(IterationModel, data["iteration_id"])
         date = data["date"]
         if not (date >= iteration.start_date and date <= iteration.end_date):
             raise ValidationError(
@@ -57,7 +58,7 @@ class AllocationRequestSchema(Schema):
             (AllocationModel.date == date) &
             (AllocationModel.user_id == data["user_id"])
         )
-        if sess.query(AllocationModel).where(resource_allocated | user_allocated).first():
+        if get_session().query(AllocationModel).where(resource_allocated | user_allocated).first():
             raise ValidationError(f"User or resource already allocated for date {data['date']}")
 
 
@@ -66,7 +67,7 @@ class AllocationAutomaticAllocationSchema(Schema):
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
-        iteration = sess.get(IterationModel, value)
+        iteration = get_session().get(IterationModel, value)
         if not iteration:
             raise ValidationError(f"Invalid iteration: {value}")
 

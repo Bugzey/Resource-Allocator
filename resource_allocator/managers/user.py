@@ -11,69 +11,93 @@ from flask import request
 from flask_httpauth import HTTPTokenAuth
 import jwt
 import requests as req
+import sqlalchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from resource_allocator.db import sess
+from resource_allocator.db import get_session
 from resource_allocator.models import UserModel, RoleModel, RoleEnum
 from resource_allocator.utils.auth import (
-    generate_token, parse_token, build_azure_ad_auth_url, build_azure_ad_token_request,
-    azure_configured, check_configured,
+    azure_configured,
+    build_azure_ad_auth_url,
+    build_azure_ad_token_request,
+    check_configured,
+    generate_token,
+    parse_token,
 )
-from resource_allocator.config import (
-    SECRET, AAD_CLIENT_ID, AAD_CLIENT_SECRET, TENANT_ID, SERVER_NAME, REDIRECT_URI,
-    AZURE_CONFIGURED, LOCAL_LOGIN_ENABLED,
-)
+from resource_allocator.config import Config
+
 
 logger = logging.getLogger(__name__)
 
 
 class UserManager:
-    @staticmethod
-    @check_configured(LOCAL_LOGIN_ENABLED, 400, "Local logins are not enabled on this server")
-    def register(data: dict) -> dict[str, str]:
+    @classmethod
+    @property
+    def sess(cls) -> sqlalchemy.orm.Session:
+        return get_session()
+
+    @classmethod
+    @property
+    def config(cls) -> Config:
+        return Config.get_instance()
+
+    @classmethod
+    @check_configured(
+        check_fun=lambda: Config.get_instance().LOCAL_LOGIN_ENABLED,
+        error_code=400,
+        error_message="Local logins are not enabled on this server",
+    )
+    def register(cls, data: dict) -> dict[str, str]:
         data = data.copy()
         data["password_hash"] = generate_password_hash(str(data["password"]))
         del data["password"]
 
-        if sess.query(UserModel).first():
+        if cls.sess.query(UserModel).first():
             role = RoleEnum.user.name
         else:
             role = RoleEnum.admin.name
 
-        role_id = sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
+        role_id = cls.sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
         data["role_id"] = role_id
 
         user = UserModel(**data)
-        sess.add(user)
-        sess.flush()
+        cls.sess.add(user)
+        cls.sess.flush()
 
-        return {"id": user.id, "token": generate_token(user.id, secret = SECRET)}
+        return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
 
-    @staticmethod
-    @check_configured(LOCAL_LOGIN_ENABLED, 400, "Local logins are not enabled on this server")
-    def login(data: dict) -> dict[str, str]:
-        user = sess.query(UserModel).where(UserModel.email == data["email"]).first()
+    @classmethod
+    @check_configured(
+        check_fun=lambda: Config.get_instance().LOCAL_LOGIN_ENABLED,
+        error_code=400,
+        error_message="Local logins are not enabled on this server",
+    )
+    def login(cls, data: dict) -> dict[str, str]:
+        user = cls.sess.query(UserModel).where(UserModel.email == data["email"]).first()
         if not user:
             return "No such user: {}".format(data["email"]), 404
 
         if not check_password_hash(user.password_hash, str(data["password"])):
             return "Invalid password", 401
 
-        return {"id": user.id, "token": generate_token(user.id, secret = SECRET)}
+        return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
 
-    @staticmethod
-    @azure_configured(AZURE_CONFIGURED)
-    def login_azure_init() -> dict[str, str]:
+    @classmethod
+    @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
+    def login_azure_init(cls) -> dict[str, str]:
         """
         Initiate or complete an Azure Active Directory login
         """
+        config = cls.config
         return {"auth_url": build_azure_ad_auth_url(
-            tenant_id = TENANT_ID, aad_client_id = AAD_CLIENT_ID, redirect_uri = REDIRECT_URI,
+            tenant_id=config.TENANT_ID,
+            aad_client_id=config.AAD_CLIENT_ID,
+            redirect_uri=config.REDIRECT_URI,
         )}
 
-    @staticmethod
-    @azure_configured(AZURE_CONFIGURED)
-    def _register_azure(user_response: dict[str, Any]) -> dict[str, str]:
+    @classmethod
+    @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
+    def _register_azure(cls, user_response: dict[str, Any]) -> dict[str, str]:
         """
         Register a new Azure Active Directory user using the user response from Azure. This method
         should remain private
@@ -91,12 +115,12 @@ class UserManager:
             f"register automatically"
         )
 
-        if sess.query(UserModel).first():
+        if cls.sess.query(UserModel).first():
             role = RoleEnum.user.name
         else:
             role = RoleEnum.admin.name
 
-        role_id = sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
+        role_id = cls.sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
 
         user = UserModel(
             email = user_response["mail"].lower(),  # can have capitals in Azure AD
@@ -106,13 +130,13 @@ class UserManager:
             role_id = role_id,
             is_external = True,
         )
-        sess.add(user)
-        sess.flush()
+        cls.sess.add(user)
+        cls.sess.flush()
         return user
 
-    @staticmethod
-    @azure_configured(AZURE_CONFIGURED)
-    def login_azure_finish(data: dict) -> dict[str, str]:
+    @classmethod
+    @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
+    def login_azure_finish(cls, data: dict) -> dict[str, str]:
         """
         Finish the Azure Active Directory login by consuming an authorization code in exchange for
         an access token. We do not store any tokens.
@@ -120,13 +144,14 @@ class UserManager:
         Args:
             data: dict: API request json. Must contain the "code" key and value
         """
+        config = cls.config
         auth_request = build_azure_ad_token_request(
-            code = data["code"],
-            tenant_id = TENANT_ID,
-            aad_client_id = AAD_CLIENT_ID,
-            aad_client_secret = AAD_CLIENT_SECRET,
-            redirect_uri = REDIRECT_URI,
-            scopes = None,  # might be integrated in the future
+            code=data["code"],
+            tenant_id=config.TENANT_ID,
+            aad_client_id=config.AAD_CLIENT_ID,
+            aad_client_secret=config.AAD_CLIENT_SECRET,
+            redirect_uri=config.REDIRECT_URI,
+            scopes=None,  # might be integrated in the future
         )
         with req.session() as req_sess:
             auth_response = req_sess.send(auth_request.prepare())
@@ -139,7 +164,7 @@ class UserManager:
             azure_token = auth_response_json["access_token"]
             user_response = get_azure_user_info(azure_token)
 
-        user = sess.query(UserModel).where(UserModel.email == user_response["mail"]).first()
+        user = cls.sess.query(UserModel).where(UserModel.email == user_response["mail"]).first()
 
         if not user:
             user = UserManager._register_azure(user_response)
@@ -150,10 +175,11 @@ class UserManager:
         if not user.is_external:
             return "User is not external; use password login", 400
 
-        return {"id": user.id, "token": generate_token(user.id, secret = SECRET)}
+        return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
 
 
 auth = HTTPTokenAuth(scheme = "Bearer")
+
 
 @auth.verify_token
 def verify_token(token):
@@ -164,12 +190,13 @@ def verify_token(token):
     No user: True
     Failed auth: False
     """
+    config = Config.get_instance()
     try:
-        parsed_token = parse_token(token = token, secret = SECRET)
+        parsed_token = parse_token(token=token, secret=config.SECRET)
     except Exception:
         return False
 
-    user = sess.get(UserModel, parsed_token["sub"])
+    user = get_session().get(UserModel, parsed_token["sub"])
     if not user:
         return True
 
@@ -186,7 +213,7 @@ def get_user_role() -> str:
     Returns:
         str: name of the assigned user role
     """
-    role = sess.get(RoleModel, auth.current_user().role_id).role
+    role = get_session().get(RoleModel, auth.current_user().role_id).role
     return role
 
 
@@ -204,7 +231,7 @@ def role_required(role_name: str) -> Callable:
         @wraps(fun)
         def wrapped(*args, **kwargs):
             user = auth.current_user()
-            required_role_id = sess \
+            required_role_id = get_session() \
                 .query(RoleModel.id) \
                 .where(RoleModel.role == role_name) \
                 .scalar()
@@ -238,4 +265,3 @@ def get_azure_user_info(azure_token: str) -> dict[str, Any]:
         },
     )
     return user.json()
-

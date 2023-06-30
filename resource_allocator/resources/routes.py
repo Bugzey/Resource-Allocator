@@ -7,6 +7,7 @@ from resource_allocator.resources.request import RequestResource
 from resource_allocator.resources.resource_to_group import ResourceToGroupResource
 from resource_allocator.resources.allocation import AllocationResource
 
+
 routes = (
     (RegisterUser, "/register/"),
     (LoginUser, "/login/"),
@@ -22,4 +23,3 @@ routes = (
         "/allocation/automatic_allocation"
     ),
 )
-

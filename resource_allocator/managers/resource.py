@@ -4,7 +4,6 @@ Managers for working with resources
 
 import sqlalchemy as db
 
-from resource_allocator.db import sess
 from resource_allocator.models import (
     ResourceModel, ResourceGroupModel, ResourceToGroupModel,
 )

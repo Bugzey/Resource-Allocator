@@ -6,9 +6,10 @@ import re
 
 from marshmallow import Schema, fields, validates, ValidationError
 
-from resource_allocator.db import sess
+from resource_allocator.db import get_session
 from resource_allocator.models import UserModel
 from resource_allocator.schemas.base import BaseSchema
+
 
 class RegisterUserRequestSchema(Schema):
     email = fields.Email(required = True)
@@ -18,6 +19,7 @@ class RegisterUserRequestSchema(Schema):
 
     @validates("email")
     def validate_email(self, value):
+        sess = get_session()
         emails = sess.query(UserModel.email).all()
         if (value, ) in emails:
             raise ValidationError(f"Email {value} already registered")

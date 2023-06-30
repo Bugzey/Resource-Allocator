@@ -28,9 +28,9 @@ class RegisterUserRequestSchemaTestCase(unittest.TestCase):
             "last_name": "bla",
         }
 
-    @patch("resource_allocator.schemas.user.sess")
+    @patch("resource_allocator.schemas.user.get_session")
     def test_register_user_schema(self, mock_sess: MagicMock):
-        mock_sess.query.return_value.all.return_value = [("dupe_user@example.com", )]
+        mock_sess.return_value.query.return_value.all.return_value = [("dupe_user@example.com", )]
         schema = user.RegisterUserRequestSchema()
 
         with self.subTest("valid user"):

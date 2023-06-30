@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 import sqlalchemy as db
 
-from resource_allocator.db import sess
+from resource_allocator.db import get_session
 
 class BaseManager(ABC):
     """
@@ -16,7 +16,13 @@ class BaseManager(ABC):
     Properties:
         model: sqlalchemy ORM table
     """
+    @classmethod
     @property
+    def sess(cls) -> db.orm.Session:
+        return get_session()
+
+    @property
+    @classmethod
     @abstractmethod
     def model(cls) -> db.Table:...
 
@@ -31,7 +37,7 @@ class BaseManager(ABC):
         Returns:
             db.Table
         """
-        item = sess.get(cls.model, id)
+        item = cls.sess.get(cls.model, id)
         if not item:
             return f"{cls.model.__tablename__} not found: {id}", 404
 
@@ -39,38 +45,37 @@ class BaseManager(ABC):
 
     @classmethod
     def list_all_items(cls) -> list[db.Table]:
-        items = sess.query(cls.model).all()
+        items = cls.sess.query(cls.model).all()
         return items
 
     @classmethod
     def create_item(cls, data: dict) -> db.Table:
         item = cls.model(**data)
-        sess.add(item)
-        sess.flush()
+        cls.sess.add(item)
+        cls.sess.flush()
         return item
 
     @classmethod
     def delete_item(cls, id: int) -> db.Table:
-        item = sess.get(cls.model, id)
+        item = cls.sess.get(cls.model, id)
         if not item:
             return f"{cls.model.__tablename__} not found", 404
 
-        sess.delete(item)
-        sess.flush()
+        cls.sess.delete(item)
+        cls.sess.flush()
         return item
 
     @classmethod
     def modify_item(cls, id: int, data: dict) -> db.Table:
-        item = sess.get(cls.model, id)
+        item = cls.sess.get(cls.model, id)
         if not item:
             return f"{cls.model.__tablename__} not found", 404
 
-        sess.execute(
+        cls.sess.execute(
             db.update(cls.model) \
             .where(cls.model.id == id) \
             .values(**data)
         )
 
-        sess.flush()
+        cls.sess.flush()
         return item
-

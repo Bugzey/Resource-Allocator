@@ -4,11 +4,12 @@ Schemas for request objects
 
 from marshmallow import Schema, fields, validates, validates_schema, ValidationError
 
-from resource_allocator.db import sess
+from resource_allocator.db import get_session
 from resource_allocator.models import (
     RequestModel, UserModel, IterationModel, ResourceModel, ResourceGroupModel,
 )
 from resource_allocator.schemas.base import BaseSchema
+
 
 class RequestRequestSchema(Schema):
     iteration_id = fields.Integer(required = True)
@@ -19,22 +20,22 @@ class RequestRequestSchema(Schema):
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
-        if not sess.get(IterationModel, value):
+        if not get_session().get(IterationModel, value):
             raise ValidationError(f"Iteration {value} does not exist")
 
     @validates("user_id")
     def validate_user_id(self, value):
-        if not sess.get(UserModel, value):
+        if not get_session().get(UserModel, value):
             raise ValidationError(f"User {value} does not exist")
 
     @validates("requested_resource_id")
     def validate_resource_id(self, value):
-        if value and not sess.get(ResourceModel, value):
+        if value and not get_session().get(ResourceModel, value):
             raise ValidationError(f"Resource {value} does not exist")
 
     @validates("requested_resource_group_id")
     def validate_resource_group_id(self, value):
-        if value and not sess.get(ResourceGroupModel, value):
+        if value and not get_session().get(ResourceGroupModel, value):
             raise ValidationError(f"Resource {value} does not exist")
 
     @validates_schema

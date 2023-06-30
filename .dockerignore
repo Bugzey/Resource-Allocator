@@ -1,0 +1,8 @@
+*.sh
+.coverage
+.git
+.gitignore
+dist
+tests
+utils
+

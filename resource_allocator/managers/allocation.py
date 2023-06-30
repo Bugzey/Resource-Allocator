@@ -6,7 +6,6 @@ from typing import Optional
 
 import sqlalchemy as db
 
-from resource_allocator.db import sess
 from resource_allocator.models import (
     AllocationModel, IterationModel, ResourceToGroupModel, ResourceModel,
 )
@@ -23,8 +22,8 @@ class AllocationManager(BaseManager):
         users priod to the allocation
         """
         #   Get the iteration being worked on and associated requests
-        iteration = sess.get(IterationModel, data["iteration_id"])
-        all_resorces = sess.query(ResourceModel).all()
+        iteration = cls.sess.get(IterationModel, data["iteration_id"])
+        all_resorces = cls.sess.query(ResourceModel).all()
 
         #   Loop over each day of the iteration
         all_dates = sorted(list({
@@ -92,4 +91,3 @@ class AllocationManager(BaseManager):
         IterationManager.modify_item(iteration.id, {"accepts_requests": False})
 
         return result
-

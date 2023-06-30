@@ -4,7 +4,7 @@ Utitlity functions and/or classes related to user authentication
 
 import datetime as dt
 from functools import wraps
-from typing import Optional
+from typing import Optional, Callable
 
 import requests as req
 import jwt
@@ -46,21 +46,25 @@ def parse_token(token: str, secret: str) -> dict:
     return parsed_token
 
 
-def check_configured(ok: bool, error_code: int = 400, error_message: str | None = None):
+def check_configured(
+    check_fun: Callable[[], bool],
+    error_code: int = 400,
+    error_message: str | None = None,
+):
     """
     Generic decorator to check if a condition is fulfilled and optionally return a message when
     calling the function
 
     Args:
-        ok: bool: the condition to check. If true - execute the function. Otherwise, return the
-            error_code and an optional error_message
+        ok: Callable: a function that takes no arguments and returns a boolean. If true - execute
+            the function. Otherwise, return the error_code and an optional error_message
         error_code: int: what HTTP code to return when the ok is False [default: 400]
         error_message: str: message to return when ok is False [default: None]
     """
     def wrapper(fun):
         @wraps(fun)
         def wrapped(*args, **kwargs):
-            if ok:
+            if check_fun():
                 return fun(*args, **kwargs)
 
             return error_message, error_code
@@ -69,18 +73,18 @@ def check_configured(ok: bool, error_code: int = 400, error_message: str | None 
     return wrapper
 
 
-def azure_configured(ok: bool):
+def azure_configured(check_fun: Callable[[], bool]):
     """
     Wrapper to check if Azure integration is configured. Will raise an Exception if it is not.
 
     This wraps check_configured.
 
     Args:
-        ok: bool: whether all variables are configured. The value of config.AZURE_CONFIGURED should
-            be passed
+        check_fun: Callable: a function that takes no argument and returns a boolean - whether all
+            variables are configured.
     """
     return check_configured(
-        ok,
+        check_fun,
         error_code = 400,
         error_message = "Azure Active Directory integration is not configured. Contact your "
             "administrator for more info."

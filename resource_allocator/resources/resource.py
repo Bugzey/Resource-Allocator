@@ -6,7 +6,6 @@ from typing import Optional
 
 from flask import request
 
-from resource_allocator.db import sess
 from resource_allocator.managers.user import auth
 from resource_allocator.managers.resource import (
     ResourceManager, ResourceGroupManager, ResourceToGroupModel,
@@ -18,6 +17,7 @@ from resource_allocator.schemas.resource_group import (
     ResourceGroupRequestSchema, ResourceGroupResponseSchema,
 )
 from resource_allocator.resources.base import BaseResource
+
 
 class ResourceResource(BaseResource):
     manager = ResourceManager
@@ -44,4 +44,3 @@ class ResourceGroupResource(BaseResource):
         data["top_resource_group_id"] = id
         result = self.manager.modify_item(id, self.request_schema().dump(data))
         return self.response_schema().dump(result)
-
