@@ -11,7 +11,9 @@ from PIL import Image
 
 from resource_allocator.db import sess
 from resource_allocator.models import (
-    ImageModel, ImageTypeModel,
+    ImageModel,
+    ImagePropertiesModel,
+    ImageTypeModel,
 )
 from resource_allocator.managers.base import BaseManager
 
@@ -33,7 +35,7 @@ class ImageManager(BaseManager):
                 .scalar()
 
             if not image_type_id:
-                new_image_type = ImageTypeModel(image_type = image_type)
+                new_image_type = ImageTypeModel(image_type=image_type)
                 sess.add(new_image_type)
                 sess.flush()
                 image_type_id = new_image_type.id
@@ -64,3 +66,7 @@ class ImageManager(BaseManager):
 
         item.__dict__["image"] = base64.b64encode(item.image_data).decode()
         return item
+
+
+class ImagePropertiesManager(BaseManager):
+    model = ImagePropertiesModel

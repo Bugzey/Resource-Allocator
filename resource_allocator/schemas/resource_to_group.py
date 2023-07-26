@@ -10,8 +10,8 @@ from resource_allocator.schemas.base import BaseSchema
 
 
 class ResourceToGroupRequestSchema(Schema):
-    resource_id = fields.Integer(required = True)
-    resource_group_id = fields.Integer(required = True)
+    resource_id = fields.Integer(required=True)
+    resource_group_id = fields.Integer(required=True)
 
     @validates("resource_id")
     def validate_resource_id(self, value):
@@ -26,4 +26,3 @@ class ResourceToGroupRequestSchema(Schema):
 
 class ResourceToGroupResponseSchema(BaseSchema, ResourceToGroupRequestSchema):
     pass
-

@@ -7,10 +7,9 @@ from marshmallow import Schema, fields, validates, validates_schema, ValidationE
 from resource_allocator.db import get_session
 from resource_allocator.models import ResourceModel, ResourceGroupModel
 from resource_allocator.schemas.base import BaseSchema
-from resource_allocator.schemas.image import ImageMixInSchema
 
 
-class ResourceRequestSchema(ImageMixInSchema, Schema):
+class ResourceRequestSchema(Schema):
     name = fields.String(required = True)
     top_resource_group_id = fields.Integer(required = True)
 
@@ -25,7 +24,6 @@ class ResourceRequestSchema(ImageMixInSchema, Schema):
             raise ValidationError(f"Invalid top_resource_group_id: {value}")
 
 
-class ResourceResponseSchema(ImageMixInSchema, BaseSchema):
+class ResourceResponseSchema(BaseSchema):
     name = fields.String(required = True)
     top_resource_group_id = fields.Integer(required = True)
-

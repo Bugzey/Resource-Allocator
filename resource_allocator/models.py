@@ -63,12 +63,9 @@ class ResourceGroupModel(Base):
     is_top_level = Column(Boolean, nullable = False, server_default = "false")
     top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
     image_id = Column(Integer, ForeignKey("image.id"))
-    image = relationship("ImageModel", back_populates = "resource_group")
-    box_x = Column(Integer)
-    box_y = Column(Integer)
-    box_width = Column(Integer)
-    box_height = Column(Integer)
-    box_rotation = Column(Float)
+    image = relationship("ImageModel", back_populates="resource_group")
+    image_properties_id = Column(integer(), ForeignKey("image_properties.id"))
+    image_properties = relationship("ImagePropertiesModel", back_populates="resource_group")
 
 
 class ResourceToGroupModel(Base):
@@ -91,11 +88,8 @@ class ResourceModel(Base):
     )
     image_id = Column(Integer, ForeignKey("image.id"))
     image = relationship("ImageModel", back_populates = "resource")
-    box_x = Column(Integer)
-    box_y = Column(Integer)
-    box_width = Column(Integer)
-    box_height = Column(Integer)
-    box_rotation = Column(Float)
+    image_properties_id = Column(integer(), ForeignKey("image_properties.id"))
+    image_properties = relationship("ImagePropertiesModel", back_populates="resource")
 
 
 class IterationModel(Base):
@@ -140,6 +134,15 @@ class ImageModel(Base):
     size_bytes = Column(Integer, nullable = False)
     resource_group = relationship("ResourceGroupModel", back_populates = "image")
     resource = relationship("ResourceModel", back_populates = "image")
+
+
+class ImagePropertiesModel(Base):
+    __tablename__ = "image_properties"
+    box_x = Column(Integer)
+    box_y = Column(Integer)
+    box_width = Column(Integer)
+    box_height = Column(Integer)
+    box_rotation = Column(Float)
 
 
 def populate_enums(

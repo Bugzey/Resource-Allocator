@@ -28,5 +28,3 @@ class ResourceGroupManager(BaseManager):
 
 class ResourceToResourceGroupManager(BaseManager):
     model = ResourceToGroupModel
-
-
