@@ -26,6 +26,8 @@ class BaseManager(ABC):
     @abstractmethod
     def model(cls) -> db.Table:...
 
+    nested_managers: dict[str, "BaseManager"] = dict()
+
     @classmethod
     def list_single_item(cls, id: int) -> db.Table:
         """
@@ -50,6 +52,9 @@ class BaseManager(ABC):
 
     @classmethod
     def create_item(cls, data: dict) -> db.Table:
+        for key in set(cls.nested_managers.keys()) & set(data.keys()):
+            data[key] = cls.nested_managers[key].create_item(data[key])
+
         item = cls.model(**data)
         cls.sess.add(item)
         cls.sess.flush()
@@ -71,6 +76,15 @@ class BaseManager(ABC):
         if not item:
             return f"{cls.model.__tablename__} not found", 404
 
+        for key in set(cls.nested_managers.keys()) & set(data.keys()):
+            nested_manager = cls.nested_managers[key]
+            nested_item = nested_manager.list_single_item(item.__dict__[key].id)
+            if isinstance(nested_item, nested_manager.model):
+                data[key] = nested_manager.modify_item(nested_item.id, data[key])
+            else:
+                data[key] = nested_manager.create_item(data[key])
+
+        item.__dict__ = {**item.__dict__, **data}
         cls.sess.execute(
             db.update(cls.model) \
             .where(cls.model.id == id) \

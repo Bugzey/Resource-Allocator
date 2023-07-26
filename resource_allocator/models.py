@@ -5,7 +5,7 @@ Database models creation
 from enum import Enum
 import sqlalchemy as db
 from sqlalchemy import (
-    Column, String, Integer, Date, DateTime, ForeignKey, func, Boolean,
+    Column, String, Integer, Date, DateTime, ForeignKey, func, Boolean, LargeBinary, Float,
 )
 from sqlalchemy import orm
 from sqlalchemy.orm import(
@@ -48,7 +48,7 @@ class UserModel(Base):
     last_name = db.Column(db.String(255), nullable = False)
     role_id = db.Column(db.Integer, db.ForeignKey("role.id"), nullable = False)
     is_external = db.Column(db.Boolean, nullable = False, server_default = "false")
-    role = orm.relationship("RoleModel")
+    role = relationship("RoleModel")
     __table_args__ = (
         db.CheckConstraint(
             "password_hash is not NULL or is_external is TRUE",
@@ -61,7 +61,11 @@ class ResourceGroupModel(Base):
     __tablename__ = "resource_group"
     name = Column(String(255), nullable = False, unique = True)
     is_top_level = Column(Boolean, nullable = False, server_default = "false")
-    top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
+    top_resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
+    image_id = Column(Integer, ForeignKey("image.id"))
+    image = relationship("ImageModel")
+    image_properties_id = Column(Integer, ForeignKey("image_properties.id"))
+    image_properties = relationship("ImagePropertiesModel")
 
 
 class ResourceToGroupModel(Base):
@@ -82,6 +86,10 @@ class ResourceModel(Base):
         "ResourceGroupModel",
         secondary = ResourceToGroupModel.__table__,
     )
+    image_id = Column(Integer, ForeignKey("image.id"))
+    image = relationship("ImageModel")
+    image_properties_id = Column(Integer, ForeignKey("image_properties.id"))
+    image_properties = relationship("ImagePropertiesModel")
 
 
 class IterationModel(Base):
@@ -90,6 +98,7 @@ class IterationModel(Base):
     end_date = Column(Date, nullable = False)
     accepts_requests = Column(Boolean, nullable = False, server_default = "true")
     requests = relationship("RequestModel")
+    allocations = relationship("AllocationModel")
 
 
 class RequestModel(Base):
@@ -110,6 +119,30 @@ class AllocationModel(Base):
     source_request_id = Column(Integer, ForeignKey("request.id"), nullable = False)
     allocated_resource_id = Column(Integer, ForeignKey("resource.id"))
     points = Column(Integer)
+
+
+class ImageTypeModel(Base):
+    __tablename__ = "image_type"
+    image_type = Column(String, nullable = False, unique = True)
+
+
+class ImageModel(Base):
+    __tablename__ = "image"
+    image_data = Column(LargeBinary, nullable = False)
+    image_type_id = Column(Integer, ForeignKey("image_type.id"), nullable = False)
+    image_type = relationship("ImageTypeModel")
+    size_bytes = Column(Integer, nullable = False)
+    resource_group = relationship("ResourceGroupModel", back_populates="image")
+    resource = relationship("ResourceModel", back_populates="image")
+
+
+class ImagePropertiesModel(Base):
+    __tablename__ = "image_properties"
+    box_x = Column(Integer)
+    box_y = Column(Integer)
+    box_width = Column(Integer)
+    box_height = Column(Integer)
+    box_rotation = Column(Float)
 
 
 def populate_enums(
