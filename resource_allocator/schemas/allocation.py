@@ -12,11 +12,11 @@ from resource_allocator.models import (
 
 
 class AllocationRequestSchema(Schema):
-    iteration_id = fields.Integer(required = True)
-    date = fields.Date(required = True)
-    user_id = fields.Integer(required = True)
-    source_request_id = fields.Integer(required = True)
-    allocated_resource_id = fields.Integer(required = True)
+    iteration_id = fields.Integer(required=True)
+    date = fields.Date(required=True)
+    user_id = fields.Integer(required=True)
+    source_request_id = fields.Integer(required=True)
+    allocated_resource_id = fields.Integer(required=True)
     points = fields.Integer()
 
     @validates("iteration_id")
@@ -63,7 +63,7 @@ class AllocationRequestSchema(Schema):
 
 
 class AllocationAutomaticAllocationSchema(Schema):
-    iteration_id = fields.Integer(required = True)
+    iteration_id = fields.Integer(required=True)
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):

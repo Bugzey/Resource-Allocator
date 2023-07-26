@@ -8,6 +8,7 @@ import sqlalchemy as db
 
 from resource_allocator.db import get_session
 
+
 class BaseManager(ABC):
     """
     Base manager class for standard CRUD-like operations on database tables. Child classes should

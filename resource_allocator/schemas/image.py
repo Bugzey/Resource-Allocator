@@ -8,8 +8,9 @@ from resource_allocator.db import sess
 from resource_allocator.models import ImageModel
 from resource_allocator.schemas.base import BaseSchema
 
+
 class ImageRequestSchema(Schema):
-    image = fields.String(required = True)
+    image = fields.String(required=True)
 
 
 class ImageResponseSchema(ImageRequestSchema):

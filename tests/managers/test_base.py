@@ -15,6 +15,7 @@ from resource_allocator.models import metadata, Base
 from resource_allocator.utils.db import change_schema
 from resource_allocator.managers.base import BaseManager
 
+
 metadata = change_schema(metadata, "resource_allocator_test")
 
 class SomeTable(Base):
@@ -45,11 +46,11 @@ class BaseManagerTestCase(unittest.TestCase):
     def test_single_item(self):
         item = self.SomeManager.create_item(self.item)
         with self.subTest("Existing"):
-            result = self.SomeManager.list_single_item(id = item.id)
+            result = self.SomeManager.list_single_item(id=item.id)
             self.assertEqual(item, result)
 
         with self.subTest("Missing"):
-            result = self.SomeManager.list_single_item(id = item.id - 1)
+            result = self.SomeManager.list_single_item(id=item.id - 1)
             self.assertIn("not found", result[0])
 
     def test_list_all_items(self):
@@ -68,4 +69,3 @@ class BaseManagerTestCase(unittest.TestCase):
 
         second_result = self.SomeManager.delete_item(item.id)
         self.assertIn("not found", second_result[0])
-

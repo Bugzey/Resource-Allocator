@@ -12,11 +12,11 @@ from resource_allocator.schemas.base import BaseSchema
 
 
 class RequestRequestSchema(Schema):
-    iteration_id = fields.Integer(required = True)
-    requested_date = fields.Date(required = True)
-    user_id = fields.Integer(required = True)
-    requested_resource_id = fields.Integer(allow_none = True)
-    requested_resource_group_id = fields.Integer(allow_none = True)
+    iteration_id = fields.Integer(required=True)
+    requested_date = fields.Date(required=True)
+    user_id = fields.Integer(required=True)
+    requested_resource_id = fields.Integer(allow_none=True)
+    requested_resource_group_id = fields.Integer(allow_none=True)
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
@@ -48,4 +48,3 @@ class RequestRequestSchema(Schema):
 
 class RequestResponseSchema(BaseSchema, RequestRequestSchema):
     pass
-

@@ -17,4 +17,3 @@ class MainTestCase(unittest.TestCase):
     def test_main(self):
         result = main()
         self.assertTrue(True)
-

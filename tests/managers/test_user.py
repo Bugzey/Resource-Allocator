@@ -14,7 +14,7 @@ from resource_allocator.db import get_session
 from resource_allocator.managers import user
 from resource_allocator.utils.db import change_schema
 
-metadata = change_schema(models.metadata, schema = "resource_allocator_test")
+metadata = change_schema(models.metadata, schema="resource_allocator_test")
 
 
 class UserManagerTestCase(unittest.TestCase):

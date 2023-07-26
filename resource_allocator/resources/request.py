@@ -23,4 +23,3 @@ class RequestResource(BaseResource):
     response_schema = RequestResponseSchema
     read_roles_required = ["user", "admin"]
     write_roles_required = ["user", "admin"]
-

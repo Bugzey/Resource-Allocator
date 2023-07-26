@@ -6,9 +6,10 @@ from marshmallow import Schema, fields, validates, validates_schema, ValidationE
 
 from resource_allocator.schemas.base import BaseSchema
 
+
 class IterationRequestSchema(Schema):
-    start_date = fields.Date(required = True)
-    end_date = fields.Date(required = True)
+    start_date = fields.Date(required=True)
+    end_date = fields.Date(required=True)
 
     @validates_schema
     def validate_continuity(self, data, **kwargs):
@@ -18,4 +19,3 @@ class IterationRequestSchema(Schema):
 
 class IterationResponseSchema(BaseSchema, IterationRequestSchema):
     pass
-

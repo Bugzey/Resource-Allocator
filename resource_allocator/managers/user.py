@@ -123,12 +123,12 @@ class UserManager:
         role_id = cls.sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
 
         user = UserModel(
-            email = user_response["mail"].lower(),  # can have capitals in Azure AD
-            password_hash = None,
-            first_name = user_response["givenName"],
-            last_name = user_response["surname"],
-            role_id = role_id,
-            is_external = True,
+            email=user_response["mail"].lower(),  # can have capitals in Azure AD
+            password_hash=None,
+            first_name=user_response["givenName"],
+            last_name=user_response["surname"],
+            role_id=role_id,
+            is_external=True,
         )
         cls.sess.add(user)
         cls.sess.flush()

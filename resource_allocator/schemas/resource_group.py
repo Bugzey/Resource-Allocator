@@ -10,8 +10,8 @@ from resource_allocator.schemas.base import BaseSchema
 
 
 class ResourceGroupRequestSchema(Schema):
-    name = fields.String(required = True)
-    is_top_level = fields.Boolean(required = True)
+    name = fields.String(required=True)
+    is_top_level = fields.Boolean(required=True)
     top_resource_group_id = fields.Integer()
 
     @validates("name")
@@ -26,7 +26,6 @@ class ResourceGroupRequestSchema(Schema):
 
 
 class ResourceGroupResponseSchema(BaseSchema):
-    name = fields.String(required = True)
-    is_top_level = fields.Boolean(required = True)
-    top_resource_group_id = fields.Integer(required = True)
-
+    name = fields.String(required=True)
+    is_top_level = fields.Boolean(required=True)
+    top_resource_group_id = fields.Integer(required=True)

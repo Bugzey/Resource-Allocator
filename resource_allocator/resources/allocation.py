@@ -32,7 +32,6 @@ class AllocationResource(BaseResource):
             result = self.manager.automatic_allocation(
                 AllocationAutomaticAllocationSchema().load(data)
             )
-            return self.response_schema().dump(result, many = True)
+            return self.response_schema().dump(result, many=True)
 
         return super().post()
-

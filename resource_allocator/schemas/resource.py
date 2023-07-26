@@ -10,8 +10,8 @@ from resource_allocator.schemas.base import BaseSchema
 
 
 class ResourceRequestSchema(Schema):
-    name = fields.String(required = True)
-    top_resource_group_id = fields.Integer(required = True)
+    name = fields.String(required=True)
+    top_resource_group_id = fields.Integer(required=True)
 
     @validates("name")
     def validate_name(self, value):
@@ -25,6 +25,5 @@ class ResourceRequestSchema(Schema):
 
 
 class ResourceResponseSchema(BaseSchema):
-    name = fields.String(required = True)
-    top_resource_group_id = fields.Integer(required = True)
-
+    name = fields.String(required=True)
+    top_resource_group_id = fields.Integer(required=True)

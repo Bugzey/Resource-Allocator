@@ -26,9 +26,9 @@ def generate_token(id: int, secret: str, now: Optional[dt.datetime] = None) -> s
     data = {
         "sub": id,
         "iat": now,
-        "exp": now + dt.timedelta(seconds = 3600),
+        "exp": now + dt.timedelta(seconds=3600),
     }
-    return jwt.encode(data, key = secret, algorithm = "HS256")
+    return jwt.encode(data, key=secret, algorithm="HS256")
 
 
 def parse_token(token: str, secret: str) -> dict:
@@ -42,7 +42,7 @@ def parse_token(token: str, secret: str) -> dict:
     Returns:
         dict: dictionary of the token payload
     """
-    parsed_token = jwt.decode(token, key = secret, algorithms = ["HS256"])
+    parsed_token = jwt.decode(token, key=secret, algorithms=["HS256"])
     return parsed_token
 
 
@@ -85,8 +85,8 @@ def azure_configured(check_fun: Callable[[], bool]):
     """
     return check_configured(
         check_fun,
-        error_code = 400,
-        error_message = "Azure Active Directory integration is not configured. Contact your "
+        error_code=400,
+        error_message="Azure Active Directory integration is not configured. Contact your "
             "administrator for more info."
     )
 
@@ -117,9 +117,9 @@ def build_azure_ad_auth_url(
         "scope": scopes,
     }
     request = req.Request(
-        method = "GET",
-        url = url,
-        params = params,
+        method="GET",
+        url=url,
+        params=params,
     )
     return request.prepare().url
 
@@ -162,10 +162,9 @@ def build_azure_ad_token_request(
         "Content-Type": "application/x-www-form-urlencoded",
     }
     request = req.Request(
-        method = "POST",
-        url = url,
-        headers = headers,
-        data = params,
+        method="POST",
+        url=url,
+        headers=headers,
+        data=params,
     )
     return request
-

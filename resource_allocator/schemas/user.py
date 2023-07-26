@@ -12,10 +12,10 @@ from resource_allocator.schemas.base import BaseSchema
 
 
 class RegisterUserRequestSchema(Schema):
-    email = fields.Email(required = True)
-    password = fields.String(required = True)
-    first_name = fields.String(required = True)
-    last_name = fields.String(required = True)
+    email = fields.Email(required=True)
+    password = fields.String(required=True)
+    first_name = fields.String(required=True)
+    last_name = fields.String(required=True)
 
     @validates("email")
     def validate_email(self, value):
@@ -38,8 +38,8 @@ class RegisterUserRequestSchema(Schema):
 
 
 class LoginUserRequestSchema(Schema):
-    email = fields.Email(required = True)
-    password = fields.String(required = True)
+    email = fields.Email(required=True)
+    password = fields.String(required=True)
 
 
 class LoginUserResponseSchema(Schema):
@@ -48,8 +48,8 @@ class LoginUserResponseSchema(Schema):
 
 
 class LoginUserAzureRequestSchema(Schema):
-    email = fields.Email(required = True)
-    code = fields.String(required = True)
+    email = fields.Email(required=True)
+    code = fields.String(required=True)
 
 
 class UserRequestSchema(BaseSchema):
@@ -63,4 +63,3 @@ class UserResponseSchema(BaseSchema):
     role_id = fields.Integer()
     role = fields.Dict()
     is_external = fields.Boolean()
-

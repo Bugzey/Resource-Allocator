@@ -13,21 +13,23 @@ from sqlalchemy.orm import(
     relationship,
 )
 
-metadata = db.MetaData(schema = "resource_allocator")
+metadata = db.MetaData(schema="resource_allocator")
 
 class BaseBase:
-    id = db.Column(db.Integer, primary_key = True, nullable = False)
+    id = db.Column(db.Integer, primary_key=True, nullable=False)
     created_time = db.Column(
-        db.DateTime, server_default = db.func.now(), nullable = False,
+        db.DateTime,
+        server_default=db.func.now(),
+        nullable=False,
     )
     updated_time = db.Column(
         db.DateTime,
-        server_default = db.func.now(),
-        nullable = False,
-        onupdate = db.func.now(),
+        server_default=db.func.now(),
+        nullable=False,
+        onupdate=db.func.now(),
     )
 
-Base = declarative_base(cls = BaseBase, metadata = metadata)
+Base = declarative_base(cls=BaseBase, metadata=metadata)
 
 
 class RoleEnum(Enum):
@@ -37,30 +39,30 @@ class RoleEnum(Enum):
 
 class RoleModel(Base):
     __tablename__ = "role"
-    role = db.Column(db.String(255), nullable = False, unique = True)
+    role = db.Column(db.String(255), nullable=False, unique=True)
 
 
 class UserModel(Base):
     __tablename__ = "user"
-    email = db.Column(db.String(255), nullable = False, unique = True)
-    password_hash = db.Column(db.String(255), nullable = True)
-    first_name = db.Column(db.String(255), nullable = False)
-    last_name = db.Column(db.String(255), nullable = False)
-    role_id = db.Column(db.Integer, db.ForeignKey("role.id"), nullable = False)
-    is_external = db.Column(db.Boolean, nullable = False, server_default = "false")
+    email = db.Column(db.String(255), nullable=False, unique=True)
+    password_hash = db.Column(db.String(255), nullable=True)
+    first_name = db.Column(db.String(255), nullable=False)
+    last_name = db.Column(db.String(255), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey("role.id"), nullable=False)
+    is_external = db.Column(db.Boolean, nullable=False, server_default="false")
     role = relationship("RoleModel")
     __table_args__ = (
         db.CheckConstraint(
             "password_hash is not NULL or is_external is TRUE",
-            name = "check_internal_or_external"
+            name="check_internal_or_external"
         ),
     )
 
 
 class ResourceGroupModel(Base):
     __tablename__ = "resource_group"
-    name = Column(String(255), nullable = False, unique = True)
-    is_top_level = Column(Boolean, nullable = False, server_default = "false")
+    name = Column(String(255), nullable=False, unique=True)
+    is_top_level = Column(Boolean, nullable=False, server_default="false")
     top_resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
     image_id = Column(Integer, ForeignKey("image.id"))
     image = relationship("ImageModel")
@@ -70,17 +72,17 @@ class ResourceGroupModel(Base):
 
 class ResourceToGroupModel(Base):
     __tablename__ = "resource_to_group"
-    resource_id = Column(Integer, ForeignKey("resource.id"), nullable = False)
+    resource_id = Column(Integer, ForeignKey("resource.id"), nullable=False)
     resource_group_id = Column(
         Integer,
         ForeignKey("resource_group.id"),
-        nullable = False,
+        nullable=False,
     )
 
 
 class ResourceModel(Base):
     __tablename__ = "resource"
-    name = Column(String(255), nullable = False, unique = True)
+    name = Column(String(255), nullable=False, unique=True)
     top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
     resource_groups = relationship(
         "ResourceGroupModel",
@@ -94,18 +96,18 @@ class ResourceModel(Base):
 
 class IterationModel(Base):
     __tablename__ = "iteration"
-    start_date= Column(Date, nullable = False)
-    end_date = Column(Date, nullable = False)
-    accepts_requests = Column(Boolean, nullable = False, server_default = "true")
+    start_date= Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    accepts_requests = Column(Boolean, nullable=False, server_default="true")
     requests = relationship("RequestModel")
     allocations = relationship("AllocationModel")
 
 
 class RequestModel(Base):
     __tablename__ = "request"
-    iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable = False)
-    requested_date = Column(Date, nullable = False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable = False)
+    iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable=False)
+    requested_date = Column(Date, nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     requested_resource_id = Column(Integer, ForeignKey("resource.id"))
     requested_resource = relationship("ResourceModel")
     requested_resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
@@ -113,25 +115,25 @@ class RequestModel(Base):
 
 class AllocationModel(Base):
     __tablename__ = "allocation"
-    iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable = False)
-    date = Column(Date, nullable = False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable = False)
-    source_request_id = Column(Integer, ForeignKey("request.id"), nullable = False)
+    iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable=False)
+    date = Column(Date, nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    source_request_id = Column(Integer, ForeignKey("request.id"), nullable=False)
     allocated_resource_id = Column(Integer, ForeignKey("resource.id"))
     points = Column(Integer)
 
 
 class ImageTypeModel(Base):
     __tablename__ = "image_type"
-    image_type = Column(String, nullable = False, unique = True)
+    image_type = Column(String, nullable=False, unique=True)
 
 
 class ImageModel(Base):
     __tablename__ = "image"
-    image_data = Column(LargeBinary, nullable = False)
-    image_type_id = Column(Integer, ForeignKey("image_type.id"), nullable = False)
+    image_data = Column(LargeBinary, nullable=False)
+    image_type_id = Column(Integer, ForeignKey("image_type.id"), nullable=False)
     image_type = relationship("ImageTypeModel")
-    size_bytes = Column(Integer, nullable = False)
+    size_bytes = Column(Integer, nullable=False)
     resource_group = relationship("ResourceGroupModel", back_populates="image")
     resource = relationship("ResourceModel", back_populates="image")
 
@@ -168,4 +170,3 @@ def populate_enums(
     for table, column, enum in table_enums:
         if sess.query(db.func.count(table.id)).scalar() == 0:
             sess.add_all([table(**{column: item.value}) for item in enum])
-

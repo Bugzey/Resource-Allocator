@@ -9,6 +9,7 @@ from typing import ClassVar
 from flask import request
 import marshmallow
 
+
 def validate_schema(schema_name: ClassVar[marshmallow.Schema]) -> Callable:
     """
     Decorator for validating input schemas given a schema class
@@ -30,4 +31,3 @@ def validate_schema(schema_name: ClassVar[marshmallow.Schema]) -> Callable:
             return fun(*args, **kwargs)
         return wrapped
     return wrapper
-

@@ -6,8 +6,8 @@ from abc import ABC
 
 from marshmallow import Schema, fields
 
-class BaseSchema(Schema):
-    id = fields.Integer(required = True)
-    created_time = fields.DateTime(required = True)
-    updated_time = fields.DateTime(required = True)
 
+class BaseSchema(Schema):
+    id = fields.Integer(required=True)
+    created_time = fields.DateTime(required=True)
+    updated_time = fields.DateTime(required=True)

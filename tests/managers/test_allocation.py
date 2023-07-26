@@ -19,7 +19,7 @@ from resource_allocator.models import (
 )
 from resource_allocator.utils.db import change_schema
 
-metadata = change_schema(metadata, schema = "resource_allocator_test")
+metadata = change_schema(metadata, schema="resource_allocator_test")
 
 
 class AllocationManagerTestCase(unittest.TestCase):

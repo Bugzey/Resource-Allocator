@@ -7,10 +7,13 @@ from typing import Optional
 import sqlalchemy as db
 
 from resource_allocator.models import (
-    AllocationModel, IterationModel, ResourceToGroupModel, ResourceModel,
+    AllocationModel,
+    IterationModel,
+    ResourceModel,
 )
 from resource_allocator.managers.base import BaseManager
 from resource_allocator.managers.iteration import IterationManager
+
 
 class AllocationManager(BaseManager):
     model = AllocationModel
@@ -57,7 +60,11 @@ class AllocationManager(BaseManager):
                             set(resource.resource_groups) != set())
                     )
                     points[key] += 10 * (
-                        request.requested_resource_group_id in [item.id for item in resource.resource_groups]
+                        request.requested_resource_group_id in [
+                            item.id
+                            for item
+                            in resource.resource_groups
+                        ]
                     )
                     #   If a user has been granted this resource in the previous day's alloaction,
                     #   add an extra 2 points
@@ -83,9 +90,12 @@ class AllocationManager(BaseManager):
         for date, allocation_list in allocation.items():
             result.extend([
                 cls.create_item({
-                    **item, "date": date, "iteration_id": iteration.id
+                    **item,
+                    "date": date,
+                    "iteration_id":
+                    iteration.id
                 }) for item in allocation_list
-        ])
+            ])
 
         #   Close iteration for new requests
         IterationManager.modify_item(iteration.id, {"accepts_requests": False})

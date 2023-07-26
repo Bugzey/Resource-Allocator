@@ -52,7 +52,7 @@ class BaseResource(ABC, Resource):
 
         if id is None:
             result = self.manager.list_all_items()
-            return self.response_schema().dump(result, many = True)
+            return self.response_schema().dump(result, many=True)
 
         result = self.manager.list_single_item(id)
         return self.response_schema().dump(result)
@@ -114,4 +114,3 @@ class BaseResource(ABC, Resource):
 
         result = self.manager.modify_item(id, self.request_schema().dump(data))
         return self.response_schema().dump(result)
-

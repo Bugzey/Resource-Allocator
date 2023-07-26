@@ -51,7 +51,7 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
         }
         with Image.new(**args) as image:
             image_bytes_io = BytesIO()
-            image.save(image_bytes_io, format = "png")
+            image.save(image_bytes_io, format="png")
             image_bytes_io.seek(0)
             return base64.b64encode(image_bytes_io.read()).decode()
 
@@ -61,12 +61,12 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
         self.assertTrue(isinstance(result.image, ImageModel))
 
     def test_modify_resource_group_with_image(self):
-        data = self.data.copy() # mutability shenanigans
+        data = self.data.copy()  # mutability shenanigans
         original_result = ResourceGroupManager.create_item(data)
         original_image = original_result.image.image_data
 
         data = self.data.copy() # mutability shenanigans
-        data["image"] = {"image": self._make_image(color = 255)}
+        data["image"] = {"image": self._make_image(color=255)}
         result = ResourceGroupManager.modify_item(original_result.id, data)
         self.assertTrue(isinstance(result, ResourceGroupModel))
         self.assertTrue(isinstance(result.image, ImageModel))
@@ -74,4 +74,3 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
         self.assertEqual(len(sess.query(ImageModel).all()), 1)
         new_image = result.image.image_data
         self.assertNotEqual(original_image, new_image)
-
