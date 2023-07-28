@@ -5,29 +5,40 @@ Database models creation
 from enum import Enum
 import sqlalchemy as db
 from sqlalchemy import (
-    Column, String, Integer, Date, DateTime, ForeignKey, func, Boolean, LargeBinary, Float,
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    func,
 )
 from sqlalchemy import orm
-from sqlalchemy.orm import(
+from sqlalchemy.orm import (
     declarative_base,
     relationship,
 )
 
 metadata = db.MetaData(schema="resource_allocator")
 
+
 class BaseBase:
-    id = db.Column(db.Integer, primary_key=True, nullable=False)
-    created_time = db.Column(
-        db.DateTime,
-        server_default=db.func.now(),
+    id = Column(Integer, primary_key=True, nullable=False)
+    created_time = Column(
+        DateTime,
+        server_default=func.now(),
         nullable=False,
     )
-    updated_time = db.Column(
-        db.DateTime,
-        server_default=db.func.now(),
+    updated_time = Column(
+        DateTime,
+        server_default=func.now(),
         nullable=False,
-        onupdate=db.func.now(),
+        onupdate=func.now(),
     )
+
 
 Base = declarative_base(cls=BaseBase, metadata=metadata)
 
@@ -39,17 +50,17 @@ class RoleEnum(Enum):
 
 class RoleModel(Base):
     __tablename__ = "role"
-    role = db.Column(db.String(255), nullable=False, unique=True)
+    role = Column(String(255), nullable=False, unique=True)
 
 
 class UserModel(Base):
     __tablename__ = "user"
-    email = db.Column(db.String(255), nullable=False, unique=True)
-    password_hash = db.Column(db.String(255), nullable=True)
-    first_name = db.Column(db.String(255), nullable=False)
-    last_name = db.Column(db.String(255), nullable=False)
-    role_id = db.Column(db.Integer, db.ForeignKey("role.id"), nullable=False)
-    is_external = db.Column(db.Boolean, nullable=False, server_default="false")
+    email = Column(String(255), nullable=False, unique=True)
+    password_hash = Column(String(255), nullable=True)
+    first_name = Column(String(255), nullable=False)
+    last_name = Column(String(255), nullable=False)
+    role_id = Column(Integer, ForeignKey("role.id"), nullable=False)
+    is_external = Column(Boolean, nullable=False, server_default="false")
     role = relationship("RoleModel")
     __table_args__ = (
         db.CheckConstraint(
@@ -86,7 +97,7 @@ class ResourceModel(Base):
     top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
     resource_groups = relationship(
         "ResourceGroupModel",
-        secondary = ResourceToGroupModel.__table__,
+        secondary=ResourceToGroupModel.__table__,
     )
     image_id = Column(Integer, ForeignKey("image.id"))
     image = relationship("ImageModel")
@@ -96,7 +107,7 @@ class ResourceModel(Base):
 
 class IterationModel(Base):
     __tablename__ = "iteration"
-    start_date= Column(Date, nullable=False)
+    start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     accepts_requests = Column(Boolean, nullable=False, server_default="true")
     requests = relationship("RequestModel")
@@ -149,7 +160,7 @@ class ImagePropertiesModel(Base):
 
 def populate_enums(
     metadata: db.MetaData,
-    sess: db.orm.Session,
+    sess: orm.Session,
 ) -> None:
     """
     Function to write defined enum values to their associated tables. This is used during an
@@ -158,7 +169,7 @@ def populate_enums(
 
     Args:
         metadata: db.MetaData object where the tables are bound to
-        sess: active db.orm.Session object already bound to its database engine
+        sess: active orm.Session object already bound to its database engine
 
     Returns:
         None
@@ -168,5 +179,5 @@ def populate_enums(
     ]
 
     for table, column, enum in table_enums:
-        if sess.query(db.func.count(table.id)).scalar() == 0:
+        if sess.query(func.count(table.id)).scalar() == 0:
             sess.add_all([table(**{column: item.value}) for item in enum])

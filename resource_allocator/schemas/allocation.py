@@ -79,4 +79,3 @@ class AllocationAutomaticAllocationSchema(Schema):
 
 class AllocationResponseSchema(BaseSchema, AllocationRequestSchema):
     pass
-

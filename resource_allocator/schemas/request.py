@@ -2,11 +2,20 @@
 Schemas for request objects
 """
 
-from marshmallow import Schema, fields, validates, validates_schema, ValidationError
+from marshmallow import (
+    Schema,
+    fields,
+    validates,
+    validates_schema,
+    ValidationError,
+)
 
 from resource_allocator.db import get_session
 from resource_allocator.models import (
-    RequestModel, UserModel, IterationModel, ResourceModel, ResourceGroupModel,
+    UserModel,
+    IterationModel,
+    ResourceModel,
+    ResourceGroupModel,
 )
 from resource_allocator.schemas.base import BaseSchema
 

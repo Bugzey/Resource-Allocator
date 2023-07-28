@@ -3,11 +3,8 @@ Tests for managers.base
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
 
-import sqlalchemy as db
-from sqlalchemy import (Column, Integer, String)
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import String
 
 from resource_allocator.config import Config
 from resource_allocator.db import get_session
@@ -18,9 +15,11 @@ from resource_allocator.managers.base import BaseManager
 
 metadata = change_schema(metadata, "resource_allocator_test")
 
+
 class SomeTable(Base):
     __tablename__ = "some_table"
     name = String(255)
+
 
 class BaseManagerTestCase(unittest.TestCase):
     class SomeManager(BaseManager):

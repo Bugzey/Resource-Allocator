@@ -3,9 +3,8 @@ Unit tests for resources.user
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
 
-from resource_allocator.resources import user
+# from resource_allocator.resources import user
 
 
 @unittest.skip("Unimplemented")

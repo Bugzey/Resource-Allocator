@@ -8,30 +8,30 @@ from flask import request
 from flask_restful import Resource
 from marshmallow import Schema
 
-from resource_allocator.managers.user import auth, role_required, get_user_role
+from resource_allocator.managers.user import auth, get_user_role
 from resource_allocator.managers.base import BaseManager
 
 
 class BaseResource(ABC, Resource):
     @property
     @abstractmethod
-    def manager(self) -> BaseManager:...
+    def manager(self) -> BaseManager: ...
 
     @property
     @abstractmethod
-    def request_schema(self) -> Schema:...
+    def request_schema(self) -> Schema: ...
 
     @property
     @abstractmethod
-    def response_schema(self) -> Schema:...
+    def response_schema(self) -> Schema: ...
 
     @property
     @abstractmethod
-    def read_roles_required(self) -> list[str]:...
+    def read_roles_required(self) -> list[str]: ...
 
     @property
     @abstractmethod
-    def write_roles_required(self) -> list[str]:...
+    def write_roles_required(self) -> list[str]: ...
 
     @auth.login_required
     def get(self, id: Optional[int] = None) -> Union[dict, list]:

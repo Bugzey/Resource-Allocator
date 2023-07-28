@@ -9,7 +9,8 @@ import unittest
 from PIL import Image
 
 from resource_allocator import models
-from resource_allocator.db import engine, sess
+from resource_allocator.config import Config
+from resource_allocator.db import get_session
 from resource_allocator.managers.image import ImageManager
 from resource_allocator.utils.db import change_schema
 
@@ -18,8 +19,11 @@ metadata = change_schema(models.metadata, schema="resource_allocator_test")
 
 class ImageManagerTestCase(unittest.TestCase):
     def setUp(self):
-        metadata.create_all(engine)
-        models.populate_enums(metadata, sess)
+        self.config = Config.from_environment()
+        self.sess = get_session()
+        self.engine = self.sess.bind
+        metadata.create_all(self.engine)
+        models.populate_enums(metadata, self.sess)
 
     @staticmethod
     def _make_image(**args) -> bytes:
@@ -34,8 +38,8 @@ class ImageManagerTestCase(unittest.TestCase):
             return base64.b64encode(image_bytes_io.read())
 
     def tearDown(self):
-        sess.rollback()
-        metadata.drop_all(engine)
+        self.sess.rollback()
+        metadata.drop_all(self.engine)
 
     def test_create(self):
         image = self._make_image()
@@ -53,4 +57,4 @@ class ImageManagerTestCase(unittest.TestCase):
         result_size = result.size_bytes
         self.assertNotEqual(initial_size, result_size)
 
-        self.assertEqual(len(sess.query(models.ImageModel).all()), 1)
+        self.assertEqual(len(self.sess.query(models.ImageModel).all()), 1)

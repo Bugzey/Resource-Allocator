@@ -17,7 +17,8 @@ routes = (
     (ResourceToGroupResource, "/resource_to_group/", "/resource_to_group/<int:id>"),
     (IterationResource, "/iterations/", "/iterations/<int:id>"),
     (RequestResource, "/requests/", "/requests/<int:id>"),
-    (AllocationResource,
+    (
+        AllocationResource,
         "/allocation/",
         "/allocation/<int:id>",
         "/allocation/automatic_allocation"

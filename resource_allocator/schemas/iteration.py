@@ -2,7 +2,12 @@
 Iteration-related request schemas
 """
 
-from marshmallow import Schema, fields, validates, validates_schema, ValidationError
+from marshmallow import (
+    Schema,
+    ValidationError,
+    fields,
+    validates_schema,
+)
 
 from resource_allocator.schemas.base import BaseSchema
 

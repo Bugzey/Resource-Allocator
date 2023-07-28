@@ -25,7 +25,8 @@ class BaseManager(ABC):
     @property
     @classmethod
     @abstractmethod
-    def model(cls) -> db.Table:...
+    def model(cls) -> db.Table:
+        pass
 
     nested_managers: dict[str, "BaseManager"] = dict()
 
@@ -85,11 +86,14 @@ class BaseManager(ABC):
             else:
                 data[key] = nested_manager.create_item(data[key])
 
-        item.__dict__ = {**item.__dict__, **data}
         cls.sess.execute(
-            db.update(cls.model) \
-            .where(cls.model.id == id) \
-            .values(**data)
+            db.update(cls.model)
+            .values(**{
+                key: value
+                for key, value
+                in data.items()
+                if key not in cls.nested_managers.keys()
+            })
         )
 
         cls.sess.flush()

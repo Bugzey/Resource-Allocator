@@ -37,7 +37,9 @@ class AllocationManager(BaseManager):
 
         for date in all_dates:
             requests = [
-                request for request in iteration.requests \
+                request
+                for request
+                in iteration.requests
                 if request.requested_date == date
             ]
             points = dict()
@@ -55,9 +57,11 @@ class AllocationManager(BaseManager):
                     #   If the resource's groups and the request groups overlap,
                     #   add 10 points
                     points[key] += 10 * (
-                        request.requested_resource is not None and \
-                        (set(request.requested_resource.resource_groups) &
-                            set(resource.resource_groups) != set())
+                        request.requested_resource is not None
+                        and (
+                            set(request.requested_resource.resource_groups)
+                            & set(resource.resource_groups) != set()
+                        )
                     )
                     points[key] += 10 * (
                         request.requested_resource_group_id in [

@@ -5,7 +5,7 @@ Schemas for resource group objects
 from marshmallow import Schema, fields, validates, ValidationError
 
 from resource_allocator.db import get_session
-from resource_allocator.models import ResourceModel, ResourceGroupModel
+from resource_allocator.models import ResourceGroupModel
 from resource_allocator.schemas.base import BaseSchema
 
 
@@ -16,7 +16,12 @@ class ResourceGroupRequestSchema(Schema):
 
     @validates("name")
     def validate_name(self, value):
-        if get_session().query(ResourceGroupModel.id).where(ResourceGroupModel.name == value).scalar():
+        if (
+            get_session()
+            .query(ResourceGroupModel.id)
+            .where(ResourceGroupModel.name == value)
+            .scalar()
+        ):
             raise ValidationError(f"Name: {value} already exists")
 
     @validates("top_resource_group_id")

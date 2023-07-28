@@ -2,8 +2,6 @@
 Base schema that includes regular fields
 """
 
-from abc import ABC
-
 from marshmallow import Schema, fields
 
 

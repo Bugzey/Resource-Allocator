@@ -39,8 +39,9 @@ class ValidateTokenTestCase(unittest.TestCase):
             secret=self.secret,
             now=dt.datetime(2000, 1, 1),
         )
-        fun = lambda: auth.parse_token(token=token, secret=self.secret)
-        self.assertRaises(auth.jwt.ExpiredSignatureError, fun)
+
+        with self.assertRaises(auth.jwt.ExpiredSignatureError):
+            _ = auth.parse_token(token=token, secret=self.secret)
 
 
 class AzureConfiguredTestCase(unittest.TestCase):

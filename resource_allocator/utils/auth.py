@@ -86,8 +86,10 @@ def azure_configured(check_fun: Callable[[], bool]):
     return check_configured(
         check_fun,
         error_code=400,
-        error_message="Azure Active Directory integration is not configured. Contact your "
+        error_message=(
+            "Azure Active Directory integration is not configured. Contact your "
             "administrator for more info."
+        ),
     )
 
 
@@ -139,7 +141,8 @@ def build_azure_ad_token_request(
     Args:
         tenant_id: Azure tenant ID
         aad_client_id: Client (application) ID for an Azure Active Directory app registration
-        aad_client_secret: Client (application) secret for an Azure Active Directory app registration
+        aad_client_secret: Client (application) secret for an Azure Active Directory app
+            registration
         redirect_uri: URI to redirect the user to after authorizing
         scopes: list[str]: optional list of custom scopes; if None: defaults to
             ["User.ReadBasic.All"]; default: None

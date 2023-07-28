@@ -2,14 +2,12 @@
 Schemas for imgae objects
 """
 
-from marshmallow import Schema, fields, validates, validates_schema, ValidationError
+from marshmallow import fields
 
-from resource_allocator.db import sess
-from resource_allocator.models import ImageModel
 from resource_allocator.schemas.base import BaseSchema
 
 
-class ImageRequestSchema(Schema):
+class ImageRequestSchema(BaseSchema):
     image = fields.String(required=True)
 
 
@@ -17,7 +15,7 @@ class ImageResponseSchema(ImageRequestSchema):
     pass
 
 
-class ImagePropertiesSchema(Schema):
+class ImagePropertiesSchema(BaseSchema):
     box_x = fields.Integer()
     box_y = fields.Integer()
     box_width = fields.Integer()

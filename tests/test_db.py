@@ -18,7 +18,7 @@ class GetSessionTestCase(unittest.TestCase):
         sess = get_session()
 
         self.assertTrue(isinstance(sess, sqlalchemy.orm.Session))
-        
+
         #   Test injection
         self.assertIsNotNone(self.config._sess)
         self.assertTrue(sess is self.config._sess)

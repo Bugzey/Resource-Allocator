@@ -2,14 +2,15 @@
 Unittests for utils.schema
 """
 
-import datetime as dt
 import unittest
-from unittest.mock import patch, MagicMock
 
+from flask import request
 from marshmallow import Schema, fields
 
 from resource_allocator.main import create_app
-from resource_allocator.utils.schema import *
+from resource_allocator.utils.schema import (
+    validate_schema,
+)
 
 
 class ValidateSchemaTestCase(unittest.TestCase):

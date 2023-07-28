@@ -5,19 +5,19 @@ Tests for managers.base
 import base64
 from io import BytesIO
 import unittest
-from unittest.mock import patch, MagicMock
 
 from PIL import Image
-import sqlalchemy as db
-from sqlalchemy import (Column, Integer, String)
-from sqlalchemy.orm import declarative_base
 
-from resource_allocator.db import sess, engine
+from resource_allocator.config import Config
+from resource_allocator.db import get_session
 from resource_allocator.models import (
-    metadata, Base, populate_enums, ResourceGroupModel, ResourceModel, ImageModel,
+    metadata,
+    populate_enums,
+    ResourceGroupModel,
+    ImageModel,
 )
 from resource_allocator.utils.db import change_schema
-from resource_allocator.managers.resource import ResourceManager, ResourceGroupManager
+from resource_allocator.managers.resource import ResourceGroupManager
 
 metadata = change_schema(metadata, "resource_allocator_test")
 
@@ -27,8 +27,11 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
     Note: this test only checks for nested image integration
     """
     def setUp(self):
-        metadata.create_all(engine)
-        populate_enums(metadata, sess)
+        self.config = Config.from_environment()
+        self.sess = get_session()
+        self.engine = self.sess.bind
+        metadata.create_all(self.engine)
+        populate_enums(metadata, self.sess)
 
         self.image = self._make_image()
         self.data = {
@@ -40,8 +43,8 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
         }
 
     def tearDown(self):
-        sess.rollback()
-        metadata.drop_all(engine)
+        self.sess.rollback()
+        metadata.drop_all(self.engine)
 
     @staticmethod
     def _make_image(**args) -> bytes:
@@ -65,12 +68,12 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
         original_result = ResourceGroupManager.create_item(data)
         original_image = original_result.image.image_data
 
-        data = self.data.copy() # mutability shenanigans
+        data = self.data.copy()  # mutability shenanigans
         data["image"] = {"image": self._make_image(color=255)}
         result = ResourceGroupManager.modify_item(original_result.id, data)
         self.assertTrue(isinstance(result, ResourceGroupModel))
         self.assertTrue(isinstance(result.image, ImageModel))
 
-        self.assertEqual(len(sess.query(ImageModel).all()), 1)
+        self.assertEqual(len(self.sess.query(ImageModel).all()), 1)
         new_image = result.image.image_data
         self.assertNotEqual(original_image, new_image)

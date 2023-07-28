@@ -4,12 +4,10 @@ Image manager
 
 import base64
 from io import BytesIO
-from typing import Optional
 
 import sqlalchemy as db
 from PIL import Image
 
-from resource_allocator.db import sess
 from resource_allocator.models import (
     ImageModel,
     ImagePropertiesModel,
@@ -27,6 +25,8 @@ class ImageManager(BaseManager):
 
     @classmethod
     def _parse_image(cls, data: dict) -> dict:
+        sess = cls.sess
+
         with Image.open(BytesIO(data["image"])) as image:
             image_type = image.format
             image_type_id = sess \
