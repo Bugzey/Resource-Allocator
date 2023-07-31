@@ -108,7 +108,7 @@ class BaseResource(ABC, Resource):
         data = request.get_json()
 
         #   Can't validate the schema with a decorator while using a base resource
-        errors = self.request_schema().validate(data)
+        errors = self.request_schema().validate(data, partial=True)
         if errors:
             return "Data validation errors: {}".format(errors), 400
 

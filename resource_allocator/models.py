@@ -151,10 +151,10 @@ class ImageModel(Base):
 
 class ImagePropertiesModel(Base):
     __tablename__ = "image_properties"
-    box_x = Column(Integer)
-    box_y = Column(Integer)
-    box_width = Column(Integer)
-    box_height = Column(Integer)
+    box_x = Column(Float)
+    box_y = Column(Float)
+    box_width = Column(Float)
+    box_height = Column(Float)
     box_rotation = Column(Float)
 
 
