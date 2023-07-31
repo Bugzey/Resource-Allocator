@@ -2,21 +2,30 @@
 Schemas for request objects
 """
 
-from marshmallow import Schema, fields, validates, validates_schema, ValidationError
+from marshmallow import (
+    Schema,
+    fields,
+    validates,
+    validates_schema,
+    ValidationError,
+)
 
 from resource_allocator.db import get_session
 from resource_allocator.models import (
-    RequestModel, UserModel, IterationModel, ResourceModel, ResourceGroupModel,
+    UserModel,
+    IterationModel,
+    ResourceModel,
+    ResourceGroupModel,
 )
 from resource_allocator.schemas.base import BaseSchema
 
 
 class RequestRequestSchema(Schema):
-    iteration_id = fields.Integer(required = True)
-    requested_date = fields.Date(required = True)
-    user_id = fields.Integer(required = True)
-    requested_resource_id = fields.Integer(allow_none = True)
-    requested_resource_group_id = fields.Integer(allow_none = True)
+    iteration_id = fields.Integer(required=True)
+    requested_date = fields.Date(required=True)
+    user_id = fields.Integer(required=True)
+    requested_resource_id = fields.Integer(allow_none=True)
+    requested_resource_group_id = fields.Integer(allow_none=True)
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
@@ -48,4 +57,3 @@ class RequestRequestSchema(Schema):
 
 class RequestResponseSchema(BaseSchema, RequestRequestSchema):
     pass
-

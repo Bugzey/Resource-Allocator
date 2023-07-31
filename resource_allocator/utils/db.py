@@ -4,6 +4,7 @@ Utility functions for database work
 
 import sqlalchemy as db
 
+
 def change_schema(metadata: db.MetaData, schema: str) -> db.MetaData:
     """
     Change the schema of a metadata object and all its child tables for testing purposes
@@ -28,4 +29,3 @@ def change_schema(metadata: db.MetaData, schema: str) -> db.MetaData:
     new_tables = db.util._collections.FacadeDict(new_tables)
     metadata.tables = new_tables
     return metadata
-

@@ -7,9 +7,7 @@ from functools import wraps
 import logging
 from typing import Any
 
-from flask import request
 from flask_httpauth import HTTPTokenAuth
-import jwt
 import requests as req
 import sqlalchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -123,12 +121,12 @@ class UserManager:
         role_id = cls.sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
 
         user = UserModel(
-            email = user_response["mail"].lower(),  # can have capitals in Azure AD
-            password_hash = None,
-            first_name = user_response["givenName"],
-            last_name = user_response["surname"],
-            role_id = role_id,
-            is_external = True,
+            email=user_response["mail"].lower(),  # can have capitals in Azure AD
+            password_hash=None,
+            first_name=user_response["givenName"],
+            last_name=user_response["surname"],
+            role_id=role_id,
+            is_external=True,
         )
         cls.sess.add(user)
         cls.sess.flush()
@@ -178,7 +176,7 @@ class UserManager:
         return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
 
 
-auth = HTTPTokenAuth(scheme = "Bearer")
+auth = HTTPTokenAuth(scheme="Bearer")
 
 
 @auth.verify_token
@@ -257,8 +255,8 @@ def get_azure_user_info(azure_token: str) -> dict[str, Any]:
         dict: dictionary of basic user properties
     """
     user = req.get(
-        url = "https://graph.microsoft.com/v1.0/me",
-        headers = {
+        url="https://graph.microsoft.com/v1.0/me",
+        headers={
             "Content-Type": "application/json",
             "Accept": "application/json",
             "Authorization": f"Bearer {azure_token}"

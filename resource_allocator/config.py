@@ -52,7 +52,7 @@ class Config:
             and self.SERVER_NAME is not None \
             and self.TENANT_ID is not None
 
-        self.URL=url.URL.create(
+        self.URL = url.URL.create(
             drivername="postgresql",
             username=self.DB_USER,
             password=self.DB_PASSWORD,

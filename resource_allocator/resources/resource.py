@@ -2,19 +2,18 @@
 API resources for resource objects
 """
 
-from typing import Optional
-
-from flask import request
-
 from resource_allocator.managers.user import auth
 from resource_allocator.managers.resource import (
-    ResourceManager, ResourceGroupManager, ResourceToGroupModel,
+    ResourceManager,
+    ResourceGroupManager,
 )
 from resource_allocator.schemas.resource import (
-    ResourceRequestSchema, ResourceResponseSchema,
+    ResourceRequestSchema,
+    ResourceResponseSchema,
 )
 from resource_allocator.schemas.resource_group import (
-    ResourceGroupRequestSchema, ResourceGroupResponseSchema,
+    ResourceGroupRequestSchema,
+    ResourceGroupResponseSchema,
 )
 from resource_allocator.resources.base import BaseResource
 

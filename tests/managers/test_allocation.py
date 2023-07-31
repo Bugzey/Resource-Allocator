@@ -4,7 +4,6 @@ Unit tests for managers.allocation
 
 import datetime as dt
 import unittest
-from unittest.mock import patch, MagicMock
 
 from resource_allocator.config import Config
 from resource_allocator.db import get_session
@@ -19,7 +18,7 @@ from resource_allocator.models import (
 )
 from resource_allocator.utils.db import change_schema
 
-metadata = change_schema(metadata, schema = "resource_allocator_test")
+metadata = change_schema(metadata, schema="resource_allocator_test")
 
 
 class AllocationManagerTestCase(unittest.TestCase):
@@ -28,7 +27,7 @@ class AllocationManagerTestCase(unittest.TestCase):
         self.sess = get_session()
         self.engine = self.sess.bind
 
-        metadata.drop_all(self.engine) # in case of errors during setUp
+        metadata.drop_all(self.engine)  # in case of errors during setUp
         metadata.create_all(self.engine)
         populate_enums(metadata, self.sess)
         self.users = [
@@ -121,7 +120,7 @@ class AllocationManagerTestCase(unittest.TestCase):
     def test_automatic_allocation(self):
         result = AllocationManager.automatic_allocation(self.allocation_args)
         self.assertTrue(isinstance(result, list))
-        self.assertEqual(len(result), 2) # 2 days
+        self.assertEqual(len(result), 2)  # 2 days
 
         #   Result is written to the database
         self.assertEqual(self.sess.query(AllocationModel).all(), result)

@@ -14,7 +14,7 @@ from resource_allocator.db import get_session
 from resource_allocator.managers import user
 from resource_allocator.utils.db import change_schema
 
-metadata = change_schema(models.metadata, schema = "resource_allocator_test")
+metadata = change_schema(models.metadata, schema="resource_allocator_test")
 
 
 class UserManagerTestCase(unittest.TestCase):
@@ -64,20 +64,20 @@ class UserManagerTestCase(unittest.TestCase):
         self.assertEqual(users[1].role_id, user_role)
 
     def test_login(self):
-        registration = user.UserManager.register(self.data)
+        _ = user.UserManager.register(self.data)
         result = user.UserManager.login(self.data)
         self.assertTrue(isinstance(result, dict))
         self.assertIn("token", result.keys())
 
     def test_login_invalid_password(self):
-        registration = user.UserManager.register(self.data)
+        _ = user.UserManager.register(self.data)
         result = user.UserManager.login({**self.data, "password": "invalid_pass"})
         self.assertIn("Invalid password", result)
 
     def test_login_invalid_user(self):
-        registration = user.UserManager.register(self.data)
+        _ = user.UserManager.register(self.data)
         result = user.UserManager.login({**self.data, "email": "bla@example.com"})
-        self.assertIn("No such user", result[0]) # message
+        self.assertIn("No such user", result[0])  # message
 
     def test_register_azure(self):
         result = user.UserManager._register_azure(self.azure_response)
@@ -103,10 +103,12 @@ class UserManagerTestCase(unittest.TestCase):
         req_session.__enter__.return_value = auth_response
         get_azure_user_info.return_value = self.azure_response
 
-        result = user.UserManager.login_azure_finish(data = {
-            "email": self.data["email"],
-            "code": "some_code",
-        })
+        result = user.UserManager.login_azure_finish(
+            data={
+                "email": self.data["email"],
+                "code": "some_code",
+            },
+        )
         self.assertTrue(isinstance(result, dict))
         self.assertIn("token", result.keys())
 
@@ -125,9 +127,9 @@ class VerifyTokenTestCase(unittest.TestCase):
         self.data = {
             "sub": 12,
             "iat": now,
-            "exp": now + dt.timedelta(seconds = 3600),
+            "exp": now + dt.timedelta(seconds=3600),
         }
-        self.good_token = jwt.encode(self.data, key=self.config.SECRET, algorithm = "HS256")
+        self.good_token = jwt.encode(self.data, key=self.config.SECRET, algorithm="HS256")
 
         self.expired_token = jwt.encode(
             {

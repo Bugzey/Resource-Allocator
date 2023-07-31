@@ -3,7 +3,6 @@ Unit tests for the config module
 """
 
 from dataclasses import fields
-import io
 import os
 import tempfile
 import unittest

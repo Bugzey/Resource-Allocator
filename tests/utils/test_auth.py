@@ -16,7 +16,7 @@ class GenerateTokenTestCase(unittest.TestCase):
         self.id = 12
 
     def test_generate_token(self):
-        token = auth.generate_token(id = self.id, secret = self.secret)
+        token = auth.generate_token(id=self.id, secret=self.secret)
         self.assertTrue(isinstance(token, str))
         self.assertGreater(len(token), 0)
 
@@ -28,19 +28,20 @@ class ValidateTokenTestCase(unittest.TestCase):
 
     def test_validate_token(self):
         #   NOTE: this depends on utils.auth.generate_token
-        token = auth.generate_token(id = self.id, secret = self.secret)
-        parsed_token = auth.parse_token(token, secret = self.secret)
+        token = auth.generate_token(id=self.id, secret=self.secret)
+        parsed_token = auth.parse_token(token, secret=self.secret)
         self.assertLessEqual(set(["iat", "exp", "sub"]), set(parsed_token.keys()))
         self.assertEqual(parsed_token["sub"], self.id)
 
     def test_expired_token(self):
         token = auth.generate_token(
-            id = self.id,
-            secret = self.secret,
-            now = dt.datetime(2000, 1, 1),
+            id=self.id,
+            secret=self.secret,
+            now=dt.datetime(2000, 1, 1),
         )
-        fun = lambda: auth.parse_token(token = token, secret = self.secret)
-        self.assertRaises(auth.jwt.ExpiredSignatureError, fun)
+
+        with self.assertRaises(auth.jwt.ExpiredSignatureError):
+            _ = auth.parse_token(token=token, secret=self.secret)
 
 
 class AzureConfiguredTestCase(unittest.TestCase):
@@ -70,10 +71,10 @@ class BuildAzureADAuthUrlTestCase(unittest.TestCase):
 
     def test_build_azure_ad_auth_url_no_scopes(self):
         result = auth.build_azure_ad_auth_url(
-            tenant_id = self.tenant_id,
-            aad_client_id = self.aad_client_id,
-            redirect_uri = self.redirect_uri,
-            scopes = None,
+            tenant_id=self.tenant_id,
+            aad_client_id=self.aad_client_id,
+            redirect_uri=self.redirect_uri,
+            scopes=None,
         )
         self.assertTrue(isinstance(result, str))
         self.assertIn(self.tenant_id, result)
@@ -84,10 +85,10 @@ class BuildAzureADAuthUrlTestCase(unittest.TestCase):
 
     def test_build_azure_ad_auth_url_with_scopes(self):
         result = auth.build_azure_ad_auth_url(
-            tenant_id = self.tenant_id,
-            aad_client_id = self.aad_client_id,
-            redirect_uri = self.redirect_uri,
-            scopes = self.scopes,
+            tenant_id=self.tenant_id,
+            aad_client_id=self.aad_client_id,
+            redirect_uri=self.redirect_uri,
+            scopes=self.scopes,
         )
         self.assertIn(self.scopes[0], result)
         self.assertIn(self.scopes[1], result)
@@ -103,12 +104,12 @@ class BuildAzureADTokenRequest(unittest.TestCase):
 
     def test_build_azure_ad_token_request_no_scopes(self):
         result = auth.build_azure_ad_token_request(
-            code = "some_code",
-            tenant_id = self.tenant_id,
-            aad_client_id = self.aad_client_id,
-            aad_client_secret = self.aad_client_secret,
-            redirect_uri = self.redirect_uri,
-            scopes = None,
+            code="some_code",
+            tenant_id=self.tenant_id,
+            aad_client_id=self.aad_client_id,
+            aad_client_secret=self.aad_client_secret,
+            redirect_uri=self.redirect_uri,
+            scopes=None,
         )
         self.assertTrue(isinstance(result, req.Request))
         self.assertIn(self.tenant_id, result.url)

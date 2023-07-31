@@ -22,7 +22,7 @@ def create_app() -> Flask:
     Returns:
         flask.Flask: instantiated Flask application
     """
-    config = Config.from_environment()
+    _ = Config.from_environment()
     sess = get_session()
     app = Flask(__name__)
     api = Api(app)

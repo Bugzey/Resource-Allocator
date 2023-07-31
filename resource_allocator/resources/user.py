@@ -90,4 +90,3 @@ class LoginUserAzure(Resource):
             return result
 
         return LoginUserResponseSchema().dump(result)
-

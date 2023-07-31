@@ -7,6 +7,7 @@ from unittest.mock import patch, MagicMock
 
 from resource_allocator.schemas import user
 
+
 class RegisterUserRequestSchemaTestCase(unittest.TestCase):
     def setUp(self):
         self.valid_user = {
@@ -76,4 +77,3 @@ class LoginUserRequestSchemaTestCase(unittest.TestCase):
             self.assertIn("password", result.keys())
             self.assertIn("bla", result.keys())
             self.assertIn("Unknown field", result["bla"][0])
-

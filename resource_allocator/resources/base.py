@@ -8,30 +8,30 @@ from flask import request
 from flask_restful import Resource
 from marshmallow import Schema
 
-from resource_allocator.managers.user import auth, role_required, get_user_role
+from resource_allocator.managers.user import auth, get_user_role
 from resource_allocator.managers.base import BaseManager
 
 
 class BaseResource(ABC, Resource):
     @property
     @abstractmethod
-    def manager(self) -> BaseManager:...
+    def manager(self) -> BaseManager: ...
 
     @property
     @abstractmethod
-    def request_schema(self) -> Schema:...
+    def request_schema(self) -> Schema: ...
 
     @property
     @abstractmethod
-    def response_schema(self) -> Schema:...
+    def response_schema(self) -> Schema: ...
 
     @property
     @abstractmethod
-    def read_roles_required(self) -> list[str]:...
+    def read_roles_required(self) -> list[str]: ...
 
     @property
     @abstractmethod
-    def write_roles_required(self) -> list[str]:...
+    def write_roles_required(self) -> list[str]: ...
 
     @auth.login_required
     def get(self, id: Optional[int] = None) -> Union[dict, list]:
@@ -52,7 +52,7 @@ class BaseResource(ABC, Resource):
 
         if id is None:
             result = self.manager.list_all_items()
-            return self.response_schema().dump(result, many = True)
+            return self.response_schema().dump(result, many=True)
 
         result = self.manager.list_single_item(id)
         return self.response_schema().dump(result)
@@ -108,10 +108,9 @@ class BaseResource(ABC, Resource):
         data = request.get_json()
 
         #   Can't validate the schema with a decorator while using a base resource
-        errors = self.request_schema().validate(data)
+        errors = self.request_schema().validate(data, partial=True)
         if errors:
             return "Data validation errors: {}".format(errors), 400
 
         result = self.manager.modify_item(id, self.request_schema().dump(data))
         return self.response_schema().dump(result)
-
