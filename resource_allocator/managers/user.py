@@ -82,16 +82,23 @@ class UserManager:
 
     @classmethod
     @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
-    def login_azure_init(cls) -> dict[str, str]:
+    def login_azure_init(cls, data: dict | None = None) -> dict[str, str]:
         """
         Initiate or complete an Azure Active Directory login
         """
+        data = data or {}
         config = cls.config
-        return {"auth_url": build_azure_ad_auth_url(
-            tenant_id=config.TENANT_ID,
-            aad_client_id=config.AAD_CLIENT_ID,
-            redirect_uri=config.REDIRECT_URI,
-        )}
+        custom_redirect = data.get("redirect_uri")
+        if custom_redirect and not custom_redirect.startswith("http://localhost:"):
+            return f"Custom redirects can only be localhost. Got {custom_redirect}", 400
+
+        return {
+            "auth_url": build_azure_ad_auth_url(
+                tenant_id=config.TENANT_ID,
+                aad_client_id=config.AAD_CLIENT_ID,
+                redirect_uri=custom_redirect or config.REDIRECT_URI,
+            )
+        }
 
     @classmethod
     @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
@@ -148,7 +155,7 @@ class UserManager:
             tenant_id=config.TENANT_ID,
             aad_client_id=config.AAD_CLIENT_ID,
             aad_client_secret=config.AAD_CLIENT_SECRET,
-            redirect_uri=config.REDIRECT_URI,
+            redirect_uri=data.get("redirect_uri", config.REDIRECT_URI),
             scopes=None,  # might be integrated in the future
         )
         with req.session() as req_sess:
@@ -162,7 +169,10 @@ class UserManager:
             azure_token = auth_response_json["access_token"]
             user_response = get_azure_user_info(azure_token)
 
-        user = cls.sess.query(UserModel).where(UserModel.email == user_response["mail"]).first()
+        user = cls.sess \
+            .query(UserModel) \
+            .where(UserModel.email == user_response["mail"].casefold()) \
+            .first()
 
         if not user:
             user = UserManager._register_azure(user_response)

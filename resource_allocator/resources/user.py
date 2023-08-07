@@ -78,7 +78,7 @@ class LoginUserAzure(Resource):
         post: finish the Azure log-in process by consuming an authorization code
     """
     def get(self) -> dict:
-        return UserManager.login_azure_init()
+        return UserManager.login_azure_init(data=request.args)
 
     @validate_schema(LoginUserAzureRequestSchema)
     def post(self) -> dict:
