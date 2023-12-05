@@ -50,6 +50,7 @@ class LoginUserResponseSchema(Schema):
 class LoginUserAzureRequestSchema(Schema):
     email = fields.Email(required=True)
     code = fields.String(required=True)
+    redirect_uri = fields.String()
 
 
 class UserRequestSchema(BaseSchema):

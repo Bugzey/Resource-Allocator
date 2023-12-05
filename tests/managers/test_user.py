@@ -5,6 +5,7 @@ Tests for the managers.auth module
 import datetime as dt
 import unittest
 from unittest.mock import patch, MagicMock
+from urllib.parse import quote
 
 import jwt
 
@@ -78,6 +79,25 @@ class UserManagerTestCase(unittest.TestCase):
         _ = user.UserManager.register(self.data)
         result = user.UserManager.login({**self.data, "email": "bla@example.com"})
         self.assertIn("No such user", result[0])  # message
+
+    def test_login_azure_init(self):
+        #   Default flow
+        result = user.UserManager.login_azure_init()
+        self.assertIsInstance(result, dict)
+        self.assertIn("auth_url", result)
+        self.assertIn(quote(self.config.REDIRECT_URI, safe=""), result["auth_url"])
+
+        #   Valid custom redirect
+        result = user.UserManager.login_azure_init({"redirect_uri": "http://localhost:9090/bla"})
+        self.assertIsInstance(result, dict)
+        self.assertIn("auth_url", result)
+        self.assertIn(quote("http://localhost:9090/bla", safe=""), result["auth_url"])
+
+        #   Invalid domains
+        result = user.UserManager.login_azure_init({"redirect_uri": "https://hacker-domain.com"})
+        self.assertIsInstance(result, tuple)
+        self.assertIn("can only be localhost", result[0])
+        self.assertIn("hacker-domain.com", result[0])
 
     def test_register_azure(self):
         result = user.UserManager._register_azure(self.azure_response)
