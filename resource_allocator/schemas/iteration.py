@@ -15,6 +15,7 @@ from resource_allocator.schemas.base import BaseSchema
 class IterationRequestSchema(Schema):
     start_date = fields.Date(required=True)
     end_date = fields.Date(required=True)
+    accepts_requests = fields.Boolean()
 
     @validates_schema
     def validate_continuity(self, data, **kwargs):

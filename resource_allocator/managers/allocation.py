@@ -26,7 +26,7 @@ class AllocationManager(BaseManager):
         """
         #   Get the iteration being worked on and associated requests
         iteration = cls.sess.get(IterationModel, data["iteration_id"])
-        all_resorces = cls.sess.query(ResourceModel).all()
+        all_resources = cls.sess.query(ResourceModel).all()
 
         #   Loop over each day of the iteration
         all_dates = sorted(list({
@@ -45,7 +45,7 @@ class AllocationManager(BaseManager):
             points = dict()
 
             #   Loop over each resource
-            for resource in all_resorces:
+            for resource in all_resources:
                 #   Assign user points
                 for request in requests:
                     key = (resource.id, request.user_id, request.id)
@@ -87,7 +87,16 @@ class AllocationManager(BaseManager):
                     "points": max_points,
                     "source_request_id": request_id,
                 })
-                points = {key: value for key, value in points.items() if key[0] != resource_id}
+                #   Remove resource and user
+                points = {
+                    key: value
+                    for key, value
+                    in points.items()
+                    if (
+                        key[0] != resource_id
+                        and key[1] != user_id
+                    )
+                }
 
         #   Add the allocations using the post interface
         result = []

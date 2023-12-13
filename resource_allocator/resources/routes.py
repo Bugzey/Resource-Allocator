@@ -32,6 +32,7 @@ routes = (
         AllocationResource,
         "/allocation/",
         "/allocation/<int:id>",
-        "/allocation/automatic_allocation"
+        "/allocation/automatic_allocation/",
+        "/automatic_allocation/",
     ),
 )
