@@ -73,6 +73,10 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "name": "desk2",
                 "top_resource_group_id": 1,
             },
+            {
+                "name": "desk3",
+                "top_resource_group_id": 1,
+            },
         ]
         [ResourceManager.create_item(item) for item in self.resources]
 
