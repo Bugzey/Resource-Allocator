@@ -41,5 +41,5 @@ class ResourceGroupResource(BaseResource):
 
         id = data["id"]
         data["top_resource_group_id"] = id
-        result = self.manager.modify_item(id, self.request_schema().dump(data))
+        result = self.manager.modify_item(id, {"top_resource_group_id": id})
         return self.response_schema().dump(result)
