@@ -204,7 +204,7 @@ def verify_token(token):
     except Exception:
         return False
 
-    user = get_session().get(UserModel, parsed_token["sub"])
+    user = get_session().get(UserModel, int(parsed_token["sub"]))
     if not user:
         return True
 

@@ -143,9 +143,9 @@ class UserManagerTestCase(unittest.TestCase):
 class VerifyTokenTestCase(unittest.TestCase):
     def setUp(self):
         self.config = Config.get_instance()
-        now = dt.datetime.utcnow()
+        now = dt.datetime.now(tz=dt.timezone.utc)
         self.data = {
-            "sub": 12,
+            "sub": "12",
             "iat": now,
             "exp": now + dt.timedelta(seconds=3600),
         }
@@ -163,9 +163,9 @@ class VerifyTokenTestCase(unittest.TestCase):
     @patch("resource_allocator.managers.user.get_session")
     def test_verify_token(self, mock_sess: MagicMock):
         with self.subTest("Good token"):
-            mock_sess.return_value.get.return_value = 12
+            mock_sess.return_value.get.return_value = "12"
             result = user.verify_token(self.good_token)
-            self.assertEqual(result, 12)
+            self.assertEqual(result, "12")
             mock_sess.return_value.get.assert_called()
 
         with self.subTest("Expired token"):

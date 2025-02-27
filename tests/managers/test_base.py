@@ -4,7 +4,7 @@ Tests for managers.base
 
 import unittest
 
-from sqlalchemy import String
+from sqlalchemy.orm import Mapped
 
 from resource_allocator.config import Config
 from resource_allocator.db import get_session
@@ -18,7 +18,7 @@ metadata = change_schema(metadata, "resource_allocator_test")
 
 class SomeTable(Base):
     __tablename__ = "some_table"
-    name = String(255)
+    name: Mapped[str]
 
 
 class BaseManagerTestCase(unittest.TestCase):

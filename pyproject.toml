@@ -66,9 +66,9 @@ good-names = [
 ]
 
 [tool.flake8]
-exclude = [
-	"*__init__.py",
-	"*__main__.py",
+extend_exclude = [
+    "venv*",
+	"alembic",
 ]
 max-line-length = 100
 ignore = [

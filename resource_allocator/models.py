@@ -2,45 +2,34 @@
 Database models creation
 """
 
+import datetime as dt
 from enum import Enum
+
 import sqlalchemy as db
 from sqlalchemy import (
-    Boolean,
-    Column,
-    Date,
-    DateTime,
-    Float,
     ForeignKey,
-    Integer,
-    LargeBinary,
-    String,
     func,
 )
 from sqlalchemy import orm
 from sqlalchemy.orm import (
-    declarative_base,
+    DeclarativeBase,
     relationship,
+    Mapped,
+    mapped_column,
 )
+
 
 metadata = db.MetaData(schema="resource_allocator")
 
 
-class BaseBase:
-    id = Column(Integer, primary_key=True, nullable=False)
-    created_time = Column(
-        DateTime,
+class Base(DeclarativeBase):
+    metadata = metadata
+    id: Mapped[int] = mapped_column(primary_key=True, nullable=False)
+    created_time: Mapped[dt.datetime] = mapped_column(server_default=func.now())
+    updated_time: Mapped[dt.datetime] = mapped_column(
         server_default=func.now(),
-        nullable=False,
-    )
-    updated_time = Column(
-        DateTime,
-        server_default=func.now(),
-        nullable=False,
         onupdate=func.now(),
     )
-
-
-Base = declarative_base(cls=BaseBase, metadata=metadata)
 
 
 class RoleEnum(Enum):
@@ -50,112 +39,110 @@ class RoleEnum(Enum):
 
 class RoleModel(Base):
     __tablename__ = "role"
-    role = Column(String(255), nullable=False, unique=True)
+    role: Mapped[str] = mapped_column(unique=True)
 
 
 class UserModel(Base):
     __tablename__ = "user"
-    email = Column(String(255), nullable=False, unique=True)
-    password_hash = Column(String(255), nullable=True)
-    first_name = Column(String(255), nullable=False)
-    last_name = Column(String(255), nullable=False)
-    role_id = Column(Integer, ForeignKey("role.id"), nullable=False)
-    is_external = Column(Boolean, nullable=False, server_default="false")
-    role = relationship("RoleModel")
     __table_args__ = (
         db.CheckConstraint(
             "password_hash is not NULL or is_external is TRUE",
             name="check_internal_or_external"
         ),
     )
+    email: Mapped[str] = mapped_column(unique=True)
+    password_hash: Mapped[str | None]
+    first_name: Mapped[str]
+    last_name: Mapped[str]
+    role_id: Mapped[int] = mapped_column(ForeignKey("role.id"))
+    role: Mapped["RoleModel"] = relationship()
+    is_external: Mapped[bool] = mapped_column(server_default="false")
 
 
 class ResourceGroupModel(Base):
     __tablename__ = "resource_group"
-    name = Column(String(255), nullable=False, unique=True)
-    is_top_level = Column(Boolean, nullable=False, server_default="false")
-    top_resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
-    image_id = Column(Integer, ForeignKey("image.id"))
-    image = relationship("ImageModel")
-    image_properties_id = Column(Integer, ForeignKey("image_properties.id"))
-    image_properties = relationship("ImagePropertiesModel")
+    name: Mapped[str] = mapped_column(unique=True)
+    is_top_level: Mapped[bool] = mapped_column(server_default="false")
+    top_resource_group_id: Mapped[int | None] = mapped_column(ForeignKey("resource_group.id"))
+    image_id: Mapped[int | None] = mapped_column(ForeignKey("image.id"))
+    image: Mapped["ImageModel"] = relationship()
+    image_properties_id: Mapped[int | None] = mapped_column(ForeignKey("image_properties.id"))
+    image_properties: Mapped["ImagePropertiesModel"] = relationship()
 
 
 class ResourceToGroupModel(Base):
     __tablename__ = "resource_to_group"
-    resource_id = Column(Integer, ForeignKey("resource.id"), nullable=False)
-    resource_group_id = Column(
-        Integer,
-        ForeignKey("resource_group.id"),
-        nullable=False,
-    )
+    resource_id: Mapped[int] = mapped_column(ForeignKey("resource.id"))
+    resource_group_id: Mapped[int] = mapped_column(ForeignKey("resource_group.id"))
 
 
 class ResourceModel(Base):
     __tablename__ = "resource"
-    name = Column(String(255), nullable=False, unique=True)
-    top_resource_group_id = Column(Integer(), ForeignKey("resource_group.id"))
-    resource_groups = relationship(
-        "ResourceGroupModel",
+    name: Mapped[str] = mapped_column(unique=True)
+    top_resource_group_id: Mapped[int] = mapped_column(ForeignKey("resource_group.id"))
+    resource_groups: Mapped[list["ResourceGroupModel"]] = relationship(
         secondary=ResourceToGroupModel.__table__,
     )
-    image_id = Column(Integer, ForeignKey("image.id"))
-    image = relationship("ImageModel")
-    image_properties_id = Column(Integer, ForeignKey("image_properties.id"))
-    image_properties = relationship("ImagePropertiesModel")
+    image_id: Mapped[int | None] = mapped_column(ForeignKey("image.id"))
+    image: Mapped["ImageModel"] = relationship()
+    image_properties_id: Mapped[int | None] = mapped_column(ForeignKey("image_properties.id"))
+    image_properties: Mapped["ImagePropertiesModel"] = relationship()
 
 
 class IterationModel(Base):
     __tablename__ = "iteration"
-    start_date = Column(Date, nullable=False)
-    end_date = Column(Date, nullable=False)
-    accepts_requests = Column(Boolean, nullable=False, server_default="true")
-    requests = relationship("RequestModel")
-    allocations = relationship("AllocationModel")
+    start_date: Mapped[dt.date]
+    end_date: Mapped[dt.date]
+    accepts_requests: Mapped[bool] = mapped_column(server_default="true")
+    requests: Mapped[list["RequestModel"]] = relationship(back_populates="iteration")
+    allocations: Mapped[list["AllocationModel"]] = relationship(back_populates="iteration")
 
 
 class RequestModel(Base):
     __tablename__ = "request"
-    iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable=False)
-    requested_date = Column(Date, nullable=False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
-    requested_resource_id = Column(Integer, ForeignKey("resource.id"))
-    requested_resource = relationship("ResourceModel")
-    requested_resource_group_id = Column(Integer, ForeignKey("resource_group.id"))
+    iteration_id: Mapped[int] = mapped_column(ForeignKey("iteration.id"))
+    iteration: Mapped["IterationModel"] = relationship(back_populates="requests")
+    requested_date: Mapped[dt.date]
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    requested_resource_id: Mapped[int | None] = mapped_column(ForeignKey("resource.id"))
+    requested_resource: Mapped["ResourceModel"] = relationship()
+    requested_resource_group_id: Mapped[int | None] = mapped_column(ForeignKey("resource_group.id"))
+    requested_resource_group: Mapped["ResourceGroupModel"] = relationship()
 
 
 class AllocationModel(Base):
     __tablename__ = "allocation"
-    iteration_id = Column(Integer, ForeignKey("iteration.id"), nullable=False)
-    date = Column(Date, nullable=False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
-    source_request_id = Column(Integer, ForeignKey("request.id"), nullable=False)
-    allocated_resource_id = Column(Integer, ForeignKey("resource.id"))
-    points = Column(Integer)
+    iteration: Mapped["IterationModel"] = relationship(back_populates="allocations")
+    iteration_id: Mapped[int] = mapped_column(ForeignKey("iteration.id"))
+    date: Mapped[dt.date]
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    source_request_id: Mapped[int] = mapped_column(ForeignKey("request.id"))
+    allocated_resource_id: Mapped[int | None] = mapped_column(ForeignKey("resource.id"))
+    points: Mapped[int]
 
 
 class ImageTypeModel(Base):
     __tablename__ = "image_type"
-    image_type = Column(String, nullable=False, unique=True)
+    image_type: Mapped[str] = mapped_column(unique=True)
 
 
 class ImageModel(Base):
     __tablename__ = "image"
-    image_data = Column(LargeBinary, nullable=False)
-    image_type_id = Column(Integer, ForeignKey("image_type.id"), nullable=False)
-    image_type = relationship("ImageTypeModel")
-    size_bytes = Column(Integer, nullable=False)
-    resource_group = relationship("ResourceGroupModel", back_populates="image")
-    resource = relationship("ResourceModel", back_populates="image")
+    image_data: Mapped[bytes]
+    image_type_id: Mapped[int] = mapped_column(ForeignKey("image_type.id"))
+    image_type: Mapped["ImageTypeModel"] = relationship()
+    size_bytes: Mapped[int]
+    resource_group: Mapped["ResourceGroupModel"] = relationship(back_populates="image")
+    resource: Mapped["ResourceModel"] = relationship(back_populates="image")
 
 
 class ImagePropertiesModel(Base):
     __tablename__ = "image_properties"
-    box_x = Column(Float)
-    box_y = Column(Float)
-    box_width = Column(Float)
-    box_height = Column(Float)
-    box_rotation = Column(Float)
+    box_x: Mapped[float]
+    box_y: Mapped[float]
+    box_width: Mapped[float]
+    box_height: Mapped[float]
+    box_rotation: Mapped[float]
 
 
 def populate_enums(
