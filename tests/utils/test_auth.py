@@ -31,7 +31,7 @@ class ValidateTokenTestCase(unittest.TestCase):
         token = auth.generate_token(id=self.id, secret=self.secret)
         parsed_token = auth.parse_token(token, secret=self.secret)
         self.assertLessEqual(set(["iat", "exp", "sub"]), set(parsed_token.keys()))
-        self.assertEqual(parsed_token["sub"], self.id)
+        self.assertEqual(parsed_token["sub"], str(self.id))
 
     def test_expired_token(self):
         token = auth.generate_token(

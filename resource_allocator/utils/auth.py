@@ -22,9 +22,9 @@ def generate_token(id: int, secret: str, now: Optional[dt.datetime] = None) -> s
     Returns:
         str: encoded token
     """
-    now = now or dt.datetime.utcnow()
+    now = now or dt.datetime.now(tz=dt.timezone.utc)
     data = {
-        "sub": id,
+        "sub": str(id),
         "iat": now,
         "exp": now + dt.timedelta(seconds=3600),
     }
