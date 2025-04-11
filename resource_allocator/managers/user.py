@@ -9,10 +9,10 @@ from typing import Any
 
 from flask_httpauth import HTTPTokenAuth
 import requests as req
-import sqlalchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from resource_allocator.db import get_session
+from resource_allocator.managers.base import BaseManager
 from resource_allocator.models import UserModel, RoleModel, RoleEnum
 from resource_allocator.utils.auth import (
     azure_configured,
@@ -28,11 +28,8 @@ from resource_allocator.config import Config
 logger = logging.getLogger(__name__)
 
 
-class UserManager:
-    @classmethod
-    @property
-    def sess(cls) -> sqlalchemy.orm.Session:
-        return get_session()
+class UserManager(BaseManager):
+    model = UserModel
 
     @classmethod
     @property

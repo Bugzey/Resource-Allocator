@@ -14,6 +14,7 @@ from resource_allocator.resources.user import (
     LoginUser,
     LoginUserAzure,
     RegisterUser,
+    UserResource,
 )
 
 
@@ -35,4 +36,5 @@ routes = (
         "/allocation/automatic_allocation/",
         "/automatic_allocation/",
     ),
+    (UserResource, "/users/", "/users/<int:id>", "/users/me"),
 )

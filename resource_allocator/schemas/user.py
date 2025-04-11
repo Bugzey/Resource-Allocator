@@ -62,5 +62,4 @@ class UserResponseSchema(BaseSchema):
     first_name = fields.String()
     last_name = fields.String()
     role_id = fields.Integer()
-    role = fields.Dict()
     is_external = fields.Boolean()
