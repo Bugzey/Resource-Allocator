@@ -2,15 +2,43 @@
 Resources related to working with users
 """
 
-from flask import request
+from flask import request, abort
 from flask_restful import Resource
 
-from resource_allocator.managers.user import UserManager
+from resource_allocator.managers.user import UserManager, auth
+from resource_allocator.resources.base import BaseResource
 from resource_allocator.schemas.user import (
-    RegisterUserRequestSchema, LoginUserRequestSchema, LoginUserResponseSchema,
+    RegisterUserRequestSchema,
+    LoginUserRequestSchema,
+    LoginUserResponseSchema,
     LoginUserAzureRequestSchema,
+    UserRequestSchema,
+    UserResponseSchema,
 )
 from resource_allocator.utils.schema import validate_schema
+
+
+class UserResource(BaseResource):
+    manager = UserManager
+    request_schema = UserRequestSchema
+    response_schema = UserResponseSchema
+    read_roles_required = ["user", "admin"]
+    write_roles_required = ["admin"]
+
+    @auth.login_required
+    def post(self) -> None:
+        abort(400, "Users cannot be created. Use the register endpoint")
+
+    @auth.login_required
+    def put(self, id: int):
+        abort(400, "Users cannot be modified at this time")
+
+    @auth.login_required
+    def get(self, id: int | None = None) -> dict | list:
+        if request.path.endswith("me"):
+            id = auth.current_user().id
+
+        return super().get(id)
 
 
 class RegisterUser(Resource):
