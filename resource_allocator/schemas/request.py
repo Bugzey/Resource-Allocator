@@ -50,6 +50,18 @@ class RequestRequestSchema(Schema):
             raise ValidationError(f"Resource {value} does not exist")
 
     @validates_schema
+    def validate_requested_date(self, data, **kwargs):
+        sess = get_session()
+        iteration = sess.get(IterationModel, data.get("iteration_id"))
+        start_date = iteration.start_date
+        end_date = iteration.end_date
+        if not end_date >= data.get("requested_date") >= start_date:
+            raise ValidationError(
+                f"Requested date outside of iteration start_date: {start_date} and end_date: "
+                f"{end_date}"
+            )
+
+    @validates_schema
     def validate_request_or_group(self, data, **kwargs):
         resource = data.get("requested_resource_id")
         group = data.get("requested_resource_group_id")
