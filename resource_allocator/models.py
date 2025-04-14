@@ -64,6 +64,7 @@ class ResourceGroupModel(Base):
     name: Mapped[str] = mapped_column(unique=True)
     is_top_level: Mapped[bool] = mapped_column(server_default="false")
     top_resource_group_id: Mapped[int | None] = mapped_column(ForeignKey("resource_group.id"))
+    top_resource_group: Mapped["ResourceGroupModel"] = relationship()
     image_id: Mapped[int | None] = mapped_column(ForeignKey("image.id"))
     image: Mapped["ImageModel"] = relationship()
     image_properties_id: Mapped[int | None] = mapped_column(ForeignKey("image_properties.id"))
@@ -80,6 +81,7 @@ class ResourceModel(Base):
     __tablename__ = "resource"
     name: Mapped[str] = mapped_column(unique=True)
     top_resource_group_id: Mapped[int] = mapped_column(ForeignKey("resource_group.id"))
+    top_resource_group: Mapped["ResourceGroupModel"] = relationship()
     resource_groups: Mapped[list["ResourceGroupModel"]] = relationship(
         secondary=ResourceToGroupModel.__table__,
     )
