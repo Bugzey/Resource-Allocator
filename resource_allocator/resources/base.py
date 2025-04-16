@@ -2,9 +2,8 @@
 Base resource for defining repeatable CRUD-like operations quicker
 """
 from abc import ABC, abstractmethod
-from typing import Optional, Union
 
-from flask import request
+from flask import request, abort
 from flask_restful import Resource
 from marshmallow import Schema
 
@@ -34,7 +33,7 @@ class BaseResource(ABC, Resource):
     def write_roles_required(self) -> list[str]: ...
 
     @auth.login_required
-    def get(self, id: Optional[int] = None) -> Union[dict, list]:
+    def get(self, id: int | None = None) -> dict | list:
         """
         Get requrest to list a single object or multiple objects
 
@@ -84,7 +83,7 @@ class BaseResource(ABC, Resource):
         return self.response_schema().dump(result)
 
     @auth.login_required
-    def delete(self, id: int):
+    def delete(self, id: int | None = None):
         """
         Issue a delete statement on a resource
 
@@ -97,13 +96,19 @@ class BaseResource(ABC, Resource):
         if not get_user_role() in self.write_roles_required:
             return "Forbidden", 403
 
+        if id is None:
+            abort(400, "Delete action requires an object ID")
+
         result = self.manager.delete_item(id)
         return self.response_schema().dump(result)
 
     @auth.login_required
-    def put(self, id: int):
+    def put(self, id: int | None = None):
         if not get_user_role() in self.write_roles_required:
             return "Forbidden", 403
+
+        if id is None:
+            abort(400, "Put action requires an object ID")
 
         data = request.get_json()
 

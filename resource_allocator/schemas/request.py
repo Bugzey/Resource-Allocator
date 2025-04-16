@@ -9,11 +9,13 @@ from marshmallow import (
     validates_schema,
     ValidationError,
 )
+from sqlalchemy import select, or_
 
 from resource_allocator.db import get_session
 from resource_allocator.models import (
     UserModel,
     IterationModel,
+    RequestModel,
     ResourceModel,
     ResourceGroupModel,
 )
@@ -48,10 +50,59 @@ class RequestRequestSchema(Schema):
             raise ValidationError(f"Resource {value} does not exist")
 
     @validates_schema
+    def validate_requested_date(self, data, **kwargs):
+        sess = get_session()
+        iteration = sess.get(IterationModel, data.get("iteration_id"))
+        start_date = iteration.start_date
+        end_date = iteration.end_date
+        if not end_date >= data.get("requested_date") >= start_date:
+            raise ValidationError(
+                f"Requested date outside of iteration start_date: {start_date} and end_date: "
+                f"{end_date}"
+            )
+
+    @validates_schema
     def validate_request_or_group(self, data, **kwargs):
-        if not (data["requested_resource_id"] or data["requested_resource_group_id"]):
+        resource = data.get("requested_resource_id")
+        group = data.get("requested_resource_group_id")
+        if (resource is None and group is None) or (resource is not None and group is not None):
             raise ValidationError(
                 "Either resource or resource group must be requested"
+            )
+
+    @validates_schema
+    def validate_one_user_per_date(self, data, **kwargs):
+        resource = data.get("requested_resource_id")
+        group = data.get("requested_resource_group_id")
+
+        sess = get_session()
+        if resource:
+            top_group = sess.get(ResourceModel, resource).top_resource_group
+        elif group:
+            top_group = sess.get(ResourceGroupModel, group).top_resource_group
+        else:
+            raise ValidationError("Neither resource nor group requested")
+
+        query = (
+            select(RequestModel)
+            .outerjoin(ResourceGroupModel)
+            .outerjoin(
+                ResourceModel,
+                RequestModel.requested_resource_id == ResourceModel.id
+            )
+            .where(
+                RequestModel.iteration_id == data.get("iteration_id"),
+                RequestModel.user_id == data.get("user_id"),
+                RequestModel.requested_date == data.get("requested_date"),
+                or_(
+                    ResourceModel.top_resource_group_id == top_group.id,
+                    ResourceGroupModel.top_resource_group_id == top_group.id,
+                )
+            )
+        )
+        if sess.scalars(query).first():
+            raise ValidationError(
+                "User already has a request for the given top resource group, date and iteration"
             )
 
 
