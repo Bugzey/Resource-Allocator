@@ -2,6 +2,8 @@
 Base resource for defining repeatable CRUD-like operations quicker
 """
 from abc import ABC, abstractmethod
+from functools import wraps
+from typing import Callable
 
 from flask import request, abort
 from flask_restful import Resource
@@ -32,7 +34,30 @@ class BaseResource(ABC, Resource):
     @abstractmethod
     def write_roles_required(self) -> list[str]: ...
 
+    @staticmethod
+    def check_read(fun: Callable) -> Callable:
+        @wraps(fun)
+        def inner(self, *args, **kwargs):
+            if not get_user_role() in self.read_roles_required:
+                abort(403, "Forbidden")
+
+            return fun(self, *args, **kwargs)
+
+        return inner
+
+    @staticmethod
+    def check_write(fun: Callable) -> Callable:
+        @wraps(fun)
+        def inner(self, *args, **kwargs):
+            if not get_user_role() in self.write_rols_required:
+                abort(403, "Forbidden")
+
+            return fun(self, *args, **kwargs)
+
+        return inner
+
     @auth.login_required
+    @check_read
     def get(self, id: int | None = None) -> dict | list:
         """
         Get requrest to list a single object or multiple objects
@@ -46,9 +71,6 @@ class BaseResource(ABC, Resource):
         """
         #   Can't use decorators with arguments in base classes before the properties are redefined
         #   in child classes
-        if not get_user_role() in self.read_roles_required:
-            return "Forbidden", 403
-
         if id is None:
             result = self.manager.list_all_items()
             return self.response_schema().dump(result, many=True)
@@ -57,6 +79,7 @@ class BaseResource(ABC, Resource):
         return self.response_schema().dump(result)
 
     @auth.login_required
+    @check_write
     def post(self) -> dict:
         """
         Create an item using the provided fields in the request json
@@ -67,22 +90,18 @@ class BaseResource(ABC, Resource):
         Returns:
             dict: dictionary of the attributes of the created object
         """
-        #   Can't use decorators with arguments in base classes before the properties are redefined
-        #   in child classes
-        if not get_user_role() in self.write_roles_required:
-            return "Forbidden", 403
-
         data = request.get_json()
 
         #   Can't validate the schema with a decorator while using a base resource
         errors = self.request_schema().validate(data)
         if errors:
-            return "Data validation errors: {}".format(errors), 400
+            abort(400, "Data validation errors: {}")
 
         result = self.manager.create_item(self.request_schema().load(data))
         return self.response_schema().dump(result)
 
     @auth.login_required
+    @check_write
     def delete(self, id: int | None = None):
         """
         Issue a delete statement on a resource
@@ -93,9 +112,6 @@ class BaseResource(ABC, Resource):
         Returns:
             Content of the deleted item
         """
-        if not get_user_role() in self.write_roles_required:
-            return "Forbidden", 403
-
         if id is None:
             abort(400, "Delete action requires an object ID")
 
@@ -103,10 +119,8 @@ class BaseResource(ABC, Resource):
         return self.response_schema().dump(result)
 
     @auth.login_required
+    @check_write
     def put(self, id: int | None = None):
-        if not get_user_role() in self.write_roles_required:
-            return "Forbidden", 403
-
         if id is None:
             abort(400, "Put action requires an object ID")
 
