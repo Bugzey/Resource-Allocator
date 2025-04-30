@@ -86,14 +86,16 @@ class BaseManager(ABC):
             else:
                 data[key] = nested_manager.create_item(data[key])
 
+        result = {
+            key: value
+            for key, value
+            in data.items()
+            if key not in cls.nested_managers.keys()
+        }
         cls.sess.execute(
             db.update(cls.model)
-            .values(**{
-                key: value
-                for key, value
-                in data.items()
-                if key not in cls.nested_managers.keys()
-            })
+            .where(cls.model.id == id)
+            .values(result)
         )
 
         cls.sess.flush()

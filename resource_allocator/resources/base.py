@@ -49,7 +49,7 @@ class BaseResource(ABC, Resource):
     def check_write(fun: Callable) -> Callable:
         @wraps(fun)
         def inner(self, *args, **kwargs):
-            if not get_user_role() in self.write_rols_required:
+            if not get_user_role() in self.write_roles_required:
                 abort(403, "Forbidden")
 
             return fun(self, *args, **kwargs)
@@ -95,7 +95,7 @@ class BaseResource(ABC, Resource):
         #   Can't validate the schema with a decorator while using a base resource
         errors = self.request_schema().validate(data)
         if errors:
-            abort(400, "Data validation errors: {}")
+            abort(400, f"Data validation errors: {errors}")
 
         result = self.manager.create_item(self.request_schema().load(data))
         return self.response_schema().dump(result)
@@ -125,11 +125,14 @@ class BaseResource(ABC, Resource):
             abort(400, "Put action requires an object ID")
 
         data = request.get_json()
+        existing = self.request_schema().dump(self.manager.list_single_item(id))
+        existing = {key: value for key, value in existing.items() if value is not None}
+        combined = {**existing, **data}
 
         #   Can't validate the schema with a decorator while using a base resource
-        errors = self.request_schema().validate(data, partial=True)
+        errors = self.request_schema().validate(combined, partial=True)
         if errors:
-            return "Data validation errors: {}".format(errors), 400
+            return abort(400, f"Data validation errors: {errors}")
 
-        result = self.manager.modify_item(id, self.request_schema().dump(data))
+        result = self.manager.modify_item(id, self.request_schema().dump(combined))
         return self.response_schema().dump(result)
