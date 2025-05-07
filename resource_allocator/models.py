@@ -121,7 +121,9 @@ class RequestModel(Base):
     requested_resource: Mapped["ResourceModel"] = relationship()
     requested_resource_group_id: Mapped[int | None] = mapped_column(ForeignKey("resource_group.id"))
     requested_resource_group: Mapped["ResourceGroupModel"] = relationship()
-    request_status_id: Mapped[int] = mapped_column(ForeignKey("request_status.id"))
+    request_status_id: Mapped[int] = mapped_column(
+        ForeignKey("request_status.id", name="request_request_status_id_fkey"),
+    )
     request_status: Mapped["RequestStatusModel"] = relationship()
 
 
