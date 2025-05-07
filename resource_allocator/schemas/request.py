@@ -107,4 +107,4 @@ class RequestRequestSchema(Schema):
 
 
 class RequestResponseSchema(BaseSchema, RequestRequestSchema):
-    pass
+    request_status_id = fields.Integer()
