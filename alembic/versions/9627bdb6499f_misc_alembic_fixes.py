@@ -17,6 +17,22 @@ depends_on = None
 
 
 def upgrade() -> None:
+    for table_name, col in [
+        ("allocation", "points"),
+        ("image_properties", "box_x"),
+        ("image_properties", "box_y"),
+        ("image_properties", "box_width"),
+        ("image_properties", "box_height"),
+        ("image_properties", "box_rotation"),
+    ]:
+        table = sa.Table(
+            table_name,
+            sa.MetaData(),
+            autoload_with=op.get_bind(),
+            schema="resource_allocator",
+        )
+        op.execute(sa.update(table).where(table.c[col].is_(None)).values({col: 0}))
+
     op.alter_column(
             'allocation', 'points',
             existing_type=sa.INTEGER(),

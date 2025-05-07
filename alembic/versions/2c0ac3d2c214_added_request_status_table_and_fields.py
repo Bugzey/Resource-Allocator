@@ -26,21 +26,6 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id'),
         schema='resource_allocator'
     )
-    op.add_column(
-        'request',
-        sa.Column('request_status_id', sa.Integer(), nullable=False),
-        schema='resource_allocator',
-    )
-    op.create_foreign_key(
-        "request_request_status_id_fkey",
-        'request',
-        'request_status',
-        ['request_status_id'],
-        ['id'],
-        source_schema='resource_allocator',
-        referent_schema='resource_allocator',
-    )
-
     status_table = sa.Table(
         "request_status", sa.MetaData(), schema="resource_allocator", autoload_with=op.get_bind(),
     )
@@ -51,6 +36,44 @@ def upgrade() -> None:
             {"request_status": "Completed"},
             {"request_status": "Declined"},
         ],
+    )
+
+    con = op.get_bind()
+    query = (
+        sa.select(status_table.c["id"])
+        .where(status_table.c["request_status"] == "New")
+    )
+    new_request_id = con.execute(query).scalar()
+
+    op.add_column(
+        'request',
+        sa.Column('request_status_id', sa.Integer(), nullable=True),
+        schema='resource_allocator',
+    )
+
+    request = sa.Table(
+        "request", sa.MetaData(), schema="resource_allocator", autoload_with=op.get_bind()
+    )
+    op.execute(
+        sa.update(request)
+        .where(request.c.request_status_id.is_(None))
+        .values({request.c.request_status_id: new_request_id})
+    )
+
+    op.alter_column(
+        "request",
+        "request_status_id",
+        nullable=True,
+        schema="resource_allocator",
+    )
+    op.create_foreign_key(
+        "request_request_status_id_fkey",
+        'request',
+        'request_status',
+        ['request_status_id'],
+        ['id'],
+        source_schema='resource_allocator',
+        referent_schema='resource_allocator',
     )
 
 
