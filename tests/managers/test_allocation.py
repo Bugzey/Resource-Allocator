@@ -14,7 +14,7 @@ from resource_allocator.managers.resource import ResourceManager, ResourceGroupM
 from resource_allocator.managers.resource_to_group import ResourceToGroupManager
 from resource_allocator.managers.user import UserManager
 from resource_allocator.models import (
-    metadata, populate_enums, AllocationModel, IterationModel,
+    metadata, populate_enums, AllocationModel, IterationModel, RequestStatusEnum
 )
 from resource_allocator.utils.db import change_schema
 
@@ -29,7 +29,7 @@ class AllocationManagerTestCase(unittest.TestCase):
 
         metadata.drop_all(self.engine)  # in case of errors during setUp
         metadata.create_all(self.engine)
-        populate_enums(metadata, self.sess)
+        populate_enums(self.sess)
         self.users = [
             {
                 "email": "user1@example.com",
@@ -39,6 +39,12 @@ class AllocationManagerTestCase(unittest.TestCase):
             },
             {
                 "email": "user2@example.com",
+                "password": 123456,
+                "first_name": "bla",
+                "last_name": "bla",
+            },
+            {
+                "email": "user3@example.com",
                 "password": 123456,
                 "first_name": "bla",
                 "last_name": "bla",
@@ -71,10 +77,6 @@ class AllocationManagerTestCase(unittest.TestCase):
             },
             {
                 "name": "desk2",
-                "top_resource_group_id": 1,
-            },
-            {
-                "name": "desk3",
                 "top_resource_group_id": 1,
             },
         ]
@@ -110,6 +112,12 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "user_id": 2,
                 "requested_resource_group_id": 3,
             },
+            {
+                "iteration_id": 1,
+                "requested_date": dt.date(2020, 1, 1),
+                "user_id": 3,
+                "requested_resource_group_id": 3,
+            },  # to be declined?
         ]
         [RequestManager.create_item(item) for item in self.requests]
 
@@ -131,3 +139,18 @@ class AllocationManagerTestCase(unittest.TestCase):
 
         #   Iteration is now closed for requests
         self.assertFalse(self.sess.get(IterationModel, 1).accepts_requests)
+
+        #   Request statuses
+        requests = RequestManager.list_all_items()
+        self.assertEqual(
+            requests[0].request_status.request_status,
+            RequestStatusEnum.completed.value,
+        )
+        self.assertEqual(
+            requests[1].request_status.request_status,
+            RequestStatusEnum.completed.value,
+        )
+        self.assertEqual(
+            requests[-1].request_status.request_status,
+            RequestStatusEnum.declined.value,
+        )

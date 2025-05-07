@@ -23,7 +23,7 @@ class ImageManagerTestCase(unittest.TestCase):
         self.sess = get_session()
         self.engine = self.sess.bind
         metadata.create_all(self.engine)
-        models.populate_enums(metadata, self.sess)
+        models.populate_enums(self.sess)
 
     @staticmethod
     def _make_image(**args) -> bytes:

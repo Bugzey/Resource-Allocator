@@ -31,7 +31,7 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
         self.sess = get_session()
         self.engine = self.sess.bind
         metadata.create_all(self.engine)
-        populate_enums(metadata, self.sess)
+        populate_enums(self.sess)
 
         self.image = self._make_image()
         self.data = {
