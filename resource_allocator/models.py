@@ -100,6 +100,17 @@ class IterationModel(Base):
     allocations: Mapped[list["AllocationModel"]] = relationship(back_populates="iteration")
 
 
+class RequestStatusEnum(Enum):
+    new = "New"
+    completed = "Completed"
+    declined = "Declined"
+
+
+class RequestStatusModel(Base):
+    __tablename__ = "request_status"
+    request_status: Mapped[str]
+
+
 class RequestModel(Base):
     __tablename__ = "request"
     iteration_id: Mapped[int] = mapped_column(ForeignKey("iteration.id"))
@@ -110,6 +121,10 @@ class RequestModel(Base):
     requested_resource: Mapped["ResourceModel"] = relationship()
     requested_resource_group_id: Mapped[int | None] = mapped_column(ForeignKey("resource_group.id"))
     requested_resource_group: Mapped["ResourceGroupModel"] = relationship()
+    request_status_id: Mapped[int] = mapped_column(
+        ForeignKey("request_status.id", name="request_request_status_id_fkey"),
+    )
+    request_status: Mapped["RequestStatusModel"] = relationship()
 
 
 class AllocationModel(Base):
@@ -148,7 +163,6 @@ class ImagePropertiesModel(Base):
 
 
 def populate_enums(
-    metadata: db.MetaData,
     sess: orm.Session,
 ) -> None:
     """
@@ -157,7 +171,6 @@ def populate_enums(
     no rows are inserted.
 
     Args:
-        metadata: db.MetaData object where the tables are bound to
         sess: active orm.Session object already bound to its database engine
 
     Returns:
@@ -165,6 +178,7 @@ def populate_enums(
     """
     table_enums = [
         (RoleModel, "role", RoleEnum),
+        (RequestStatusModel, "request_status", RequestStatusEnum),
     ]
 
     for table, column, enum in table_enums:

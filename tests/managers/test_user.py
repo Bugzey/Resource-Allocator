@@ -24,7 +24,7 @@ class UserManagerTestCase(unittest.TestCase):
         self.sess = get_session()
         self.engine = self.sess.bind
         metadata.create_all(self.engine)
-        models.populate_enums(metadata, self.sess)
+        models.populate_enums(self.sess)
         self.data = {
             "email": "test@example.com",
             "password": 123456,
