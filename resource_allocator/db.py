@@ -18,4 +18,10 @@ def get_session() -> db.orm.Session:
         models.metadata.bind = engine
         config._sess = db.orm.Session(bind=engine)
 
+    #   Check if session requires a manual rollback
+    try:
+        _ = config._sess.connection()
+    except db.exc.PendingRollbackError:
+        config._sess.rollback()
+
     return config._sess
