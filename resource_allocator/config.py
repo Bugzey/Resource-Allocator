@@ -42,6 +42,10 @@ class Config:
 
         raise RuntimeError("No Config instance initialized")
 
+    @classmethod
+    def reset_instance(cls) -> None:
+        cls._instance = []
+
     def __post_init__(self):
         """
         Create compound variables or variables that depend on others

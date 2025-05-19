@@ -16,6 +16,7 @@ class IterationRequestSchemaTestCase(unittest.TestCase):
     def setUpClass(self):
         self.engine = create_engine("sqlite+pysqlite:///:memory:")
         with self.engine.connect() as con:
+            con.execute(text('attach database ":memory:" as resource_allocator_test'))
             con.execute(text('attach database ":memory:" as resource_allocator'))
             con.execute(CreateTable(IterationModel.__table__))
 
