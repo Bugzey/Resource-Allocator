@@ -12,6 +12,7 @@ from resource_allocator.db import get_session
 
 class GetSessionTestCase(unittest.TestCase):
     def setUp(self):
+        Config.reset_instance()
         self.config = Config.from_environment()
 
     def test_get_session(self):

@@ -6,6 +6,7 @@ from dataclasses import fields
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from sqlalchemy.engine import url
 
@@ -19,7 +20,7 @@ class ConfigTestCase(unittest.TestCase):
         self.kwargs["DB_PORT"] = 12
 
     def tearDown(self):
-        Config._instance = []
+        Config.reset_instance()
 
     def test_init(self):
         config = Config(**self.kwargs)
@@ -30,10 +31,17 @@ class ConfigTestCase(unittest.TestCase):
         self.assertTrue(config.AZURE_CONFIGURED)
         self.assertTrue(isinstance(config.URL, url.URL))
 
-    def test_from_environment(self):
-        for key, value in self.kwargs.items():
-            os.environ[key] = str(value)
+    @staticmethod
+    def patch_environ(fun):
+        def inner(self, *args, **kwargs):
+            @patch.dict(os.environ, self.kwargs)
+            def more_inner(self, *args, **kwargs):
+                return fun(self, *args, **kwargs)
 
+        return inner
+
+    @patch_environ
+    def test_from_environment(self):
         config = Config.from_environment()
         self.assertTrue(isinstance(config, Config))
         self.assertTrue(config.LOCAL_LOGIN_ENABLED)
