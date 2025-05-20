@@ -23,6 +23,84 @@ class AllocationManager(BaseManager):
     model = AllocationModel
 
     @classmethod
+    def _assign_points(cls, request: RequestModel, resource: ResourceModel) -> int:
+        points = 0
+
+        #   If this is the exact resource being requested, add 2 points
+        points += 2 * (request.requested_resource == resource)
+
+        #   If the resource's groups and the request groups overlap,
+        #   add 10 points
+        points += 10 * (
+            request.requested_resource is not None
+            and (
+                set(request.requested_resource.resource_groups)
+                & set(resource.resource_groups) != set()
+            )
+        )
+        points += 10 * (
+            request.requested_resource_group_id in [
+                item.id
+                for item
+                in resource.resource_groups
+            ]
+        )
+
+        #   Add some points if located in the same top-level resource group
+        points += 5 * (
+            (
+                request.requested_resource is not None
+                and request.requested_resource.top_resource_group_id ==
+                resource.top_resource_group_id
+            )
+            or (
+                request.requested_resource is None
+                and request.requested_resource_group.top_resource_group_id ==
+                resource.top_resource_group_id
+            )
+        )
+        #   If a user has been granted this resource in the previous day's alloaction,
+        #   add an extra 2 points
+        #   TODO
+
+        return points
+
+    @classmethod
+    def _remove_requests(
+        cls,
+        request: RequestModel,
+        resource: ResourceModel,
+        points: dict[tuple[RequestModel, ResourceModel], int],
+    ):
+        new_points = {}
+        for (points_request, points_resource), value in points.items():
+            points_request: RequestModel
+            points_resource: ResourceModel
+
+            if points_resource.id == resource.id:
+                continue
+
+            if (
+                points_request.requested_resource_id is not None
+                and points_request.user_id == request.user_id
+                and points_request.requested_resource.top_resource_group_id ==
+                resource.top_resource_group_id
+            ):
+                continue
+
+            if (
+                points_request.requested_resource_group_id is not None
+                and points_request.user_id == request.user_id
+                and points_request.requested_resource_group.top_resource_group_id ==
+                resource.top_resource_group_id
+            ):
+                continue
+
+            new_points[(points_request, points_resource)] = value
+
+        return new_points
+
+    @classmethod
     def automatic_allocation(cls, data: Optional[dict]) -> list[db.Table]:
         """
         Generate optimal allocations of resources to users to dates based on requests sent by the
@@ -49,7 +127,6 @@ class AllocationManager(BaseManager):
         all_dates = sorted(list({
             request.requested_date for request in iteration.requests
         }))
-
         allocation = dict()
 
         for date in all_dates:
@@ -63,51 +140,14 @@ class AllocationManager(BaseManager):
 
             #   Loop over each resource
             for resource in all_resources:
-                resource: ResourceModel
+
                 #   Assign user points
                 for request in requests:
-                    request: RequestModel
                     key = (request, resource)
-                    points[key] = 0
-
-                    #   If this is the exact resource being requested, add 2 points
-                    points[key] += 2 * (request.requested_resource == resource)
-
-                    #   If the resource's groups and the request groups overlap,
-                    #   add 10 points
-                    points[key] += 10 * (
-                        request.requested_resource is not None
-                        and (
-                            set(request.requested_resource.resource_groups)
-                            & set(resource.resource_groups) != set()
-                        )
-                    )
-                    points[key] += 10 * (
-                        request.requested_resource_group_id in [
-                            item.id
-                            for item
-                            in resource.resource_groups
-                        ]
-                    )
-
-                    #   Add some points if located in the same top-level resource group
-                    points[key] += 5 * (
-                        (
-                            request.requested_resource is not None
-                            and request.requested_resource.top_resource_group_id ==
-                            resource.top_resource_group_id
-                        )
-                        or (
-                            request.requested_resource is None
-                            and request.requested_resource_group.top_resource_group_id ==
-                            resource.top_resource_group_id
-                        )
-                    )
-                    #   If a user has been granted this resource in the previous day's alloaction,
-                    #   add an extra 2 points
-                    #   TODO
+                    points[key] = cls._assign_points(request, resource)
 
             allocation[date] = []
+
             while points:
                 max_points = max(points.values())
                 cur_allocation = next(
@@ -116,9 +156,6 @@ class AllocationManager(BaseManager):
                 )
                 if not cur_allocation:
                     break
-
-                if request.id == 3:
-                    breakpoint()
 
                 request, resource = cur_allocation
                 allocation[date].append({
@@ -135,33 +172,7 @@ class AllocationManager(BaseManager):
                 )
 
                 #   Remove resource and user requests for the same top resource group id
-                new_points = {}
-                for (points_request, points_resource), value in points.items():
-                    points_request: RequestModel
-                    points_resource: ResourceModel
-
-                    if points_resource.id == resource.id:
-                        continue
-
-                    if (
-                        points_request.requested_resource_id is not None
-                        and points_request.user_id == request.user_id
-                        and points_request.requested_resource.top_resource_group_id ==
-                        resource.top_resource_group_id
-                    ):
-                        continue
-
-                    if (
-                        points_request.requested_resource_group_id is not None
-                        and points_request.user_id == request.user_id
-                        and points_request.requested_resource_group.top_resource_group_id ==
-                        resource.top_resource_group_id
-                    ):
-                        continue
-
-                    new_points[(points_request, points_resource)] = value
-
-                points = new_points
+                points = cls._remove_requests(request, resource, points)
 
         #   Add the allocations using the post interface
         result = []
