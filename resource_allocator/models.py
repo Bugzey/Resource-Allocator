@@ -151,7 +151,8 @@ class AllocationModel(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     source_request_id: Mapped[int] = mapped_column(ForeignKey("request.id"))
     allocated_resource_id: Mapped[int | None] = mapped_column(ForeignKey("resource.id"))
-    points: Mapped[int]
+    allocated_resource: Mapped[ResourceModel | None] = relationship()
+    points: Mapped[int | None]
 
 
 class ImageTypeModel(Base):

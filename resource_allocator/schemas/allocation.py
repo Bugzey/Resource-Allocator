@@ -3,6 +3,7 @@ Allocation-related request schemas
 """
 
 from marshmallow import Schema, fields, validates, validates_schema, ValidationError
+from sqlalchemy import select
 
 from resource_allocator.db import get_session
 from resource_allocator.schemas.base import BaseSchema
@@ -41,7 +42,7 @@ class AllocationRequestSchema(Schema):
             raise ValidationError(f"Invalid resource: {value}")
 
     @validates_schema
-    def validate_iteration_date(self, data, **kwargs):
+    def validate_iteration_bounds(self, data, **kwargs):
         iteration = get_session().get(IterationModel, data["iteration_id"])
         date = data["date"]
         if not (date >= iteration.start_date and date <= iteration.end_date):
@@ -49,16 +50,31 @@ class AllocationRequestSchema(Schema):
                 f"Date {date} not within bounds: {iteration.start_date} - {iteration.end_date}"
             )
 
-        #   Unique constraints - a resource OR user cannot be allocated again for a single day
+    def validate_already_allocated(self, data, **kwargs):
+        #   Unique constraints
+        #   1. a resource cannot be allocated again
+        #   2. OR user cannot be allocated again for a single day for the same top resource group
+        date = data["date"]
+        sess = get_session()
+        top_resource_group_id = sess.scalar(
+            select(ResourceModel.top_resource_group_id)
+            .where(ResourceModel.id == data["allocated_resource_id"])
+        )
         resource_allocated = (
-            (AllocationModel.date == date) &
-            (AllocationModel.allocated_resource_id == data["allocated_resource_id"])
+            (AllocationModel.date == date)
+            & (AllocationModel.allocated_resource_id == data["allocated_resource_id"])
         )
         user_allocated = (
-            (AllocationModel.date == date) &
-            (AllocationModel.user_id == data["user_id"])
+            (AllocationModel.date == date)
+            & (AllocationModel.user_id == data["user_id"])
+            & (
+                AllocationModel.allocated_resource_id.in_(
+                    select(ResourceModel.id)
+                    .where(ResourceModel.top_resource_group_id == top_resource_group_id)
+                )
+            )
         )
-        if get_session().query(AllocationModel).where(resource_allocated | user_allocated).first():
+        if sess.query(AllocationModel).where(resource_allocated | user_allocated).first():
             raise ValidationError(f"User or resource already allocated for date {data['date']}")
 
 
