@@ -10,6 +10,7 @@ from resource_allocator.models import (
     AllocationModel,
     IterationModel,
     ResourceModel,
+    RequestModel,
     RequestStatusEnum,
     RequestStatusModel,
 )
@@ -62,9 +63,11 @@ class AllocationManager(BaseManager):
 
             #   Loop over each resource
             for resource in all_resources:
+                resource: ResourceModel
                 #   Assign user points
                 for request in requests:
-                    key = (resource.id, request.user_id, request.id)
+                    request: RequestModel
+                    key = (request, resource)
                     points[key] = 0
 
                     #   If this is the exact resource being requested, add 2 points
@@ -86,6 +89,20 @@ class AllocationManager(BaseManager):
                             in resource.resource_groups
                         ]
                     )
+
+                    #   Add some points if located in the same top-level resource group
+                    points[key] += 5 * (
+                        (
+                            request.requested_resource is not None
+                            and request.requested_resource.top_resource_group_id ==
+                            resource.top_resource_group_id
+                        )
+                        or (
+                            request.requested_resource is None
+                            and request.requested_resource_group.top_resource_group_id ==
+                            resource.top_resource_group_id
+                        )
+                    )
                     #   If a user has been granted this resource in the previous day's alloaction,
                     #   add an extra 2 points
                     #   TODO
@@ -93,33 +110,58 @@ class AllocationManager(BaseManager):
             allocation[date] = []
             while points:
                 max_points = max(points.values())
-                cur_allocation = [
-                    key for key, value in points.items() if value == max_points
-                ][0]
-                resource_id, user_id, request_id = cur_allocation
+                cur_allocation = next(
+                    (key for key, value in points.items() if value == max_points and value > 0),
+                    None,
+                )
+                if not cur_allocation:
+                    break
+
+                if request.id == 3:
+                    breakpoint()
+
+                request, resource = cur_allocation
                 allocation[date].append({
-                    "allocated_resource_id": resource_id,
-                    "user_id": user_id,
+                    "allocated_resource_id": resource.id,
+                    "user_id": request.user_id,
                     "points": max_points,
-                    "source_request_id": request_id,
+                    "source_request_id": request.id,
                 })
 
                 #   Set request status
                 RequestManager.modify_item(
-                    request_id,
+                    request.id,
                     {"request_status_id": request_completed_id}
                 )
 
-                #   Remove resource and user
-                points = {
-                    key: value
-                    for key, value
-                    in points.items()
+                #   Remove resource and user requests for the same top resource group id
+                new_points = {}
+                for (points_request, points_resource), value in points.items():
+                    points_request: RequestModel
+                    points_resource: ResourceModel
+
+                    if points_resource.id == resource.id:
+                        continue
+
                     if (
-                        key[0] != resource_id
-                        and key[1] != user_id
-                    )
-                }
+                        points_request.requested_resource_id is not None
+                        and points_request.user_id == request.user_id
+                        and points_request.requested_resource.top_resource_group_id ==
+                        resource.top_resource_group_id
+                    ):
+                        continue
+
+                    if (
+                        points_request.requested_resource_group_id is not None
+                        and points_request.user_id == request.user_id
+                        and points_request.requested_resource_group.top_resource_group_id ==
+                        resource.top_resource_group_id
+                    ):
+                        continue
+
+                    new_points[(points_request, points_resource)] = value
+
+                points = new_points
 
         #   Add the allocations using the post interface
         result = []

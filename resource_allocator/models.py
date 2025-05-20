@@ -9,6 +9,7 @@ import sqlalchemy as db
 from sqlalchemy import (
     ForeignKey,
     func,
+    inspect,
 )
 from sqlalchemy import orm
 from sqlalchemy.orm import (
@@ -16,6 +17,7 @@ from sqlalchemy.orm import (
     relationship,
     Mapped,
     mapped_column,
+    ColumnProperty,
 )
 
 
@@ -30,6 +32,19 @@ class Base(DeclarativeBase):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+    def __repr__(self):
+        mapper = inspect(self.__class__)
+        cols = {
+            f"{key}={self.__dict__.get(key) if isinstance(value, ColumnProperty) else '...'}"
+            for key, value
+            in mapper.attrs.items()
+        }
+        return (
+            f"{self.__class__.__name__}("
+            f"{', '.join(cols)}"
+            ")"
+        )
 
 
 class RoleEnum(Enum):
@@ -125,6 +140,7 @@ class RequestModel(Base):
         ForeignKey("request_status.id", name="request_request_status_id_fkey"),
     )
     request_status: Mapped["RequestStatusModel"] = relationship()
+    allocation: Mapped["AllocationModel"] = relationship()
 
 
 class AllocationModel(Base):
