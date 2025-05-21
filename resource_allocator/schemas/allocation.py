@@ -19,6 +19,7 @@ class AllocationRequestSchema(Schema):
     source_request_id = fields.Integer(required=True)
     allocated_resource_id = fields.Integer(required=True)
     points = fields.Integer()
+    id = fields.Integer()  # To allow modifications
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
@@ -50,6 +51,7 @@ class AllocationRequestSchema(Schema):
                 f"Date {date} not within bounds: {iteration.start_date} - {iteration.end_date}"
             )
 
+    @validates_schema
     def validate_already_allocated(self, data, **kwargs):
         #   Unique constraints
         #   1. a resource cannot be allocated again
@@ -73,6 +75,7 @@ class AllocationRequestSchema(Schema):
                     .where(ResourceModel.top_resource_group_id == top_resource_group_id)
                 )
             )
+            & (AllocationModel.id != data.get("id"))  # Ignore condition when updating
         )
         if sess.query(AllocationModel).where(resource_allocated | user_allocated).first():
             raise ValidationError(f"User or resource already allocated for date {data['date']}")
