@@ -134,5 +134,5 @@ class BaseResource(ABC, Resource):
         if errors:
             return abort(400, f"Data validation errors: {errors}")
 
-        result = self.manager.modify_item(id, self.request_schema().dump(combined))
+        result = self.manager.modify_item(id, self.request_schema().load(combined))
         return self.response_schema().dump(result)

@@ -36,7 +36,7 @@ def upgrade() -> None:
     op.alter_column(
             'allocation', 'points',
             existing_type=sa.INTEGER(),
-            nullable=False,
+            nullable=True,
             schema='resource_allocator')
     op.alter_column(
             'image_properties', 'box_x',

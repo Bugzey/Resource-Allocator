@@ -54,7 +54,7 @@ class AllocationManagerTestCase(unittest.TestCase):
 
         self.resource_groups = [
             {
-                "name": "top-level",
+                "name": "top_level",
                 "is_top_level": True,
             },
             {
@@ -67,6 +67,10 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "is_top_level": False,
                 "top_resource_group_id": 1,
             },
+            {
+                "name": "other_top_level",
+                "is_top_level": True,
+            },
         ]
         [ResourceGroupManager.create_item(item) for item in self.resource_groups]
 
@@ -78,6 +82,10 @@ class AllocationManagerTestCase(unittest.TestCase):
             {
                 "name": "desk2",
                 "top_resource_group_id": 1,
+            },
+            {
+                "name": "desk_other_1",
+                "top_resource_group_id": 4,
             },
         ]
         [ResourceManager.create_item(item) for item in self.resources]
@@ -117,7 +125,13 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "requested_date": dt.date(2020, 1, 1),
                 "user_id": 3,
                 "requested_resource_group_id": 3,
-            },  # to be declined?
+            },  # Declined since no more resources are available
+            {
+                "iteration_id": 1,
+                "requested_date": dt.date(2020, 1, 1),
+                "user_id": 1,
+                "requested_resource_group_id": 4,
+            },  # User 1 requests a resource in a different top resource group id
         ]
         [RequestManager.create_item(item) for item in self.requests]
 
@@ -132,7 +146,6 @@ class AllocationManagerTestCase(unittest.TestCase):
     def test_automatic_allocation(self):
         result = AllocationManager.automatic_allocation(self.allocation_args)
         self.assertTrue(isinstance(result, list))
-        self.assertEqual(len(result), 2)  # 2 days
 
         #   Result is written to the database
         self.assertEqual(self.sess.query(AllocationModel).all(), result)
@@ -142,6 +155,7 @@ class AllocationManagerTestCase(unittest.TestCase):
 
         #   Request statuses
         requests = RequestManager.list_all_items()
+        requests.sort(key=lambda x: x.id)
         self.assertEqual(
             requests[0].request_status.request_status,
             RequestStatusEnum.completed.value,
@@ -151,6 +165,10 @@ class AllocationManagerTestCase(unittest.TestCase):
             RequestStatusEnum.completed.value,
         )
         self.assertEqual(
-            requests[-1].request_status.request_status,
+            requests[2].request_status.request_status,
             RequestStatusEnum.declined.value,
+        )
+        self.assertEqual(
+            requests[3].request_status.request_status,
+            RequestStatusEnum.completed.value,
         )

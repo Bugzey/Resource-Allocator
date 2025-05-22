@@ -28,6 +28,7 @@ class RequestRequestSchema(Schema):
     user_id = fields.Integer(required=True)
     requested_resource_id = fields.Integer(allow_none=True)
     requested_resource_group_id = fields.Integer(allow_none=True)
+    id = fields.Integer()
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
@@ -97,7 +98,8 @@ class RequestRequestSchema(Schema):
                 or_(
                     ResourceModel.top_resource_group_id == top_group.id,
                     ResourceGroupModel.top_resource_group_id == top_group.id,
-                )
+                ),
+                RequestModel.id != data.get("id")
             )
         )
         if sess.scalars(query).first():

@@ -20,4 +20,4 @@ class RequestManager(BaseManager):
             )
             data["request_status_id"] = cls.sess.execute(query).scalar()
 
-        super().create_item(data)
+        return super().create_item(data)
