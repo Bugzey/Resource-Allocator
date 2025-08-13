@@ -110,7 +110,7 @@ class IterationModel(Base):
     __tablename__ = "iteration"
     start_date: Mapped[dt.date]
     end_date: Mapped[dt.date]
-    accepts_requests: Mapped[bool] = mapped_column(server_default="true")
+    is_allocated: Mapped[bool] = mapped_column(server_default="false")
     requests: Mapped[list["RequestModel"]] = relationship(back_populates="iteration")
     allocations: Mapped[list["AllocationModel"]] = relationship(back_populates="iteration")
 

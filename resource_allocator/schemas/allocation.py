@@ -83,6 +83,7 @@ class AllocationRequestSchema(Schema):
 
 class AllocationAutomaticAllocationSchema(Schema):
     iteration_id = fields.Integer(required=True)
+    request_id = fields.Integer()
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
@@ -90,10 +91,11 @@ class AllocationAutomaticAllocationSchema(Schema):
         if not iteration:
             raise ValidationError(f"Invalid iteration: {value}")
 
-        if not iteration.accepts_requests:
-            raise ValidationError(
-                f"Iteration {value} does not accept requests or automatic allocation"
-            )
+    @validates("request_id")
+    def validate_request_id(self, value):
+        request = get_session().get(RequestModel, value)
+        if not request:
+            raise ValidationError(f"Invalid request_id. {value}")
 
 
 class AllocationResponseSchema(BaseSchema, AllocationRequestSchema):

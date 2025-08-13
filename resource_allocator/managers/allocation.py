@@ -2,8 +2,6 @@
 Allocation manager
 """
 
-from typing import Optional
-
 import sqlalchemy as db
 from sqlalchemy import select
 
@@ -120,7 +118,7 @@ class AllocationManager(BaseManager):
         return new_points
 
     @classmethod
-    def automatic_allocation(cls, data: Optional[dict]) -> list[db.Table]:
+    def automatic_allocation(cls, data: dict) -> list[AllocationModel]:
         """
         Generate optimal allocations of resources to users to dates based on requests sent by the
         users priod to the allocation
@@ -133,9 +131,15 @@ class AllocationManager(BaseManager):
             .where(RequestStatusModel.request_status == RequestStatusEnum.declined.value)
         )
 
+        #   Handle all requests or a single request
+        if "request_id" in data:
+            all_requests = [RequestManager.list_single_item(data["request_id"])]
+        else:
+            all_requests = iteration.requests
+
         #   Loop over each day of the iteration
         all_dates = sorted(list({
-            request.requested_date for request in iteration.requests
+            request.requested_date for request in all_requests
         }))
         allocation = dict()
 
@@ -199,6 +203,6 @@ class AllocationManager(BaseManager):
             RequestManager.modify_item(item.id, {"request_status_id": request_declined_id})
 
         #   Close iteration for new requests
-        IterationManager.modify_item(iteration.id, {"accepts_requests": False})
+        IterationManager.modify_item(iteration.id, {"is_allocated": True})
 
         return result
