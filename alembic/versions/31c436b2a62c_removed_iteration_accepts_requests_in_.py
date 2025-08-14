@@ -31,9 +31,21 @@ def upgrade() -> None:
     )
     con = op.get_bind()
     con.execute(sa.text("update resource_allocator.iteration set is_allocated = true"))
+    op.create_unique_constraint(
+        'allocation_iteration_id_date_allocated_resource_id_key',
+        'allocation',
+        ['iteration_id', 'date', 'allocated_resource_id'],
+        schema='resource_allocator',
+    )
 
 
 def downgrade() -> None:
+    op.drop_constraint(
+        'allocation_iteration_id_date_allocated_resource_id_key',
+        'allocation',
+        schema='resource_allocator',
+        type_='unique',
+    )
     op.alter_column(
         'request', 'request_status_id',
         existing_type=sa.INTEGER(),

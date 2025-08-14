@@ -137,23 +137,42 @@ class AllocationManager(BaseManager):
         else:
             all_requests = iteration.requests
 
-        #   Loop over each day of the iteration
+        #   Get all dates being requested
         all_dates = sorted(list({
             request.requested_date for request in all_requests
         }))
         allocation = dict()
 
+        #   Get a list of resources that are already allocated
+        already_allocated_rows = list(cls.sess.execute(
+            select(
+                AllocationModel.date,
+                AllocationModel.allocated_resource_id,
+            )
+            .where(
+                AllocationModel.iteration_id == iteration.id,
+                AllocationModel.date.in_(all_dates),
+            )
+        ))
+        already_allocated = {row.date: [] for row in already_allocated_rows}
+        for row in already_allocated_rows:
+            already_allocated[row.date].append(row.allocated_resource_id)
+
+        #   Loop over each day of the iteration
         for date in all_dates:
             requests = [
                 request
                 for request
-                in iteration.requests
+                in all_requests
                 if request.requested_date == date
             ]
             points = dict()
 
             #   Loop over each resource
             for resource in all_resources:
+                #   Skip resources that are already allocated
+                if resource.id in already_allocated.get(date, []):
+                    continue
 
                 #   Assign user points
                 for request in requests:
