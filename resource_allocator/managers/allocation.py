@@ -217,7 +217,7 @@ class AllocationManager(BaseManager):
 
         #   Decline leftover requests
         fulfilled_request_ids = [item.source_request_id for item in result]
-        leftover = [item for item in iteration.requests if item.id not in fulfilled_request_ids]
+        leftover = [item for item in all_requests if item.id not in fulfilled_request_ids]
         for item in leftover:
             RequestManager.modify_item(item.id, {"request_status_id": request_declined_id})
 
