@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     func,
     inspect,
+    UniqueConstraint,
 )
 from sqlalchemy import orm
 from sqlalchemy.orm import (
@@ -110,7 +111,7 @@ class IterationModel(Base):
     __tablename__ = "iteration"
     start_date: Mapped[dt.date]
     end_date: Mapped[dt.date]
-    accepts_requests: Mapped[bool] = mapped_column(server_default="true")
+    is_allocated: Mapped[bool] = mapped_column(server_default="false")
     requests: Mapped[list["RequestModel"]] = relationship(back_populates="iteration")
     allocations: Mapped[list["AllocationModel"]] = relationship(back_populates="iteration")
 
@@ -145,6 +146,12 @@ class RequestModel(Base):
 
 class AllocationModel(Base):
     __tablename__ = "allocation"
+    __table_args__ = (
+        UniqueConstraint(
+            "iteration_id", "date", "allocated_resource_id",
+            name="allocation_iteration_id_date_allocated_resource_id_key",
+        ),
+    )
     iteration: Mapped["IterationModel"] = relationship(back_populates="allocations")
     iteration_id: Mapped[int] = mapped_column(ForeignKey("iteration.id"))
     date: Mapped[dt.date]

@@ -2,8 +2,6 @@
 Allocation manager
 """
 
-from typing import Optional
-
 import sqlalchemy as db
 from sqlalchemy import select
 
@@ -120,7 +118,7 @@ class AllocationManager(BaseManager):
         return new_points
 
     @classmethod
-    def automatic_allocation(cls, data: Optional[dict]) -> list[db.Table]:
+    def automatic_allocation(cls, data: dict) -> list[AllocationModel]:
         """
         Generate optimal allocations of resources to users to dates based on requests sent by the
         users priod to the allocation
@@ -133,23 +131,48 @@ class AllocationManager(BaseManager):
             .where(RequestStatusModel.request_status == RequestStatusEnum.declined.value)
         )
 
-        #   Loop over each day of the iteration
+        #   Handle all requests or a single request
+        if "request_id" in data:
+            all_requests = [RequestManager.list_single_item(data["request_id"])]
+        else:
+            all_requests = iteration.requests
+
+        #   Get all dates being requested
         all_dates = sorted(list({
-            request.requested_date for request in iteration.requests
+            request.requested_date for request in all_requests
         }))
         allocation = dict()
 
+        #   Get a list of resources that are already allocated
+        already_allocated_rows = list(cls.sess.execute(
+            select(
+                AllocationModel.date,
+                AllocationModel.allocated_resource_id,
+            )
+            .where(
+                AllocationModel.iteration_id == iteration.id,
+                AllocationModel.date.in_(all_dates),
+            )
+        ))
+        already_allocated = {row.date: [] for row in already_allocated_rows}
+        for row in already_allocated_rows:
+            already_allocated[row.date].append(row.allocated_resource_id)
+
+        #   Loop over each day of the iteration
         for date in all_dates:
             requests = [
                 request
                 for request
-                in iteration.requests
+                in all_requests
                 if request.requested_date == date
             ]
             points = dict()
 
             #   Loop over each resource
             for resource in all_resources:
+                #   Skip resources that are already allocated
+                if resource.id in already_allocated.get(date, []):
+                    continue
 
                 #   Assign user points
                 for request in requests:
@@ -194,11 +217,11 @@ class AllocationManager(BaseManager):
 
         #   Decline leftover requests
         fulfilled_request_ids = [item.source_request_id for item in result]
-        leftover = [item for item in iteration.requests if item.id not in fulfilled_request_ids]
+        leftover = [item for item in all_requests if item.id not in fulfilled_request_ids]
         for item in leftover:
             RequestManager.modify_item(item.id, {"request_status_id": request_declined_id})
 
         #   Close iteration for new requests
-        IterationManager.modify_item(iteration.id, {"accepts_requests": False})
+        IterationManager.modify_item(iteration.id, {"is_allocated": True})
 
         return result

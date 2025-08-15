@@ -16,9 +16,9 @@ from resource_allocator.schemas.base import BaseSchema
 
 
 class IterationRequestSchema(Schema):
+    id = fields.Integer()
     start_date = fields.Date(required=True)
     end_date = fields.Date(required=True)
-    accepts_requests = fields.Boolean()
 
     @validates_schema
     def validate_continuity(self, data, **kwargs):
@@ -38,6 +38,7 @@ class IterationRequestSchema(Schema):
                     and_(
                         start_date <= IterationModel.end_date,
                         end_date >= IterationModel.start_date,
+                        IterationModel.id != data.get("id"),
                     )
                 )
             )
@@ -51,4 +52,4 @@ class IterationRequestSchema(Schema):
 
 
 class IterationResponseSchema(BaseSchema, IterationRequestSchema):
-    pass
+    is_allocated = fields.Boolean()

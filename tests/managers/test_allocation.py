@@ -87,6 +87,10 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "name": "desk_other_1",
                 "top_resource_group_id": 4,
             },
+            {
+                "name": "desk_other_2",
+                "top_resource_group_id": 4,
+            },
         ]
         [ResourceManager.create_item(item) for item in self.resources]
 
@@ -151,7 +155,7 @@ class AllocationManagerTestCase(unittest.TestCase):
         self.assertEqual(self.sess.query(AllocationModel).all(), result)
 
         #   Iteration is now closed for requests
-        self.assertFalse(self.sess.get(IterationModel, 1).accepts_requests)
+        self.assertTrue(self.sess.get(IterationModel, 1).is_allocated)
 
         #   Request statuses
         requests = RequestManager.list_all_items()
@@ -171,4 +175,150 @@ class AllocationManagerTestCase(unittest.TestCase):
         self.assertEqual(
             requests[3].request_status.request_status,
             RequestStatusEnum.completed.value,
+        )
+
+    def test_request_resource_after_allocation(self):
+        _ = AllocationManager.automatic_allocation(self.allocation_args)
+
+        #   New request to a free resource
+        request = RequestManager.create_item(
+            {
+                "iteration_id": 1,
+                "requested_date": dt.date(2020, 1, 2),
+                "user_id": 1,
+                "requested_resource_id": 3,
+            },
+        )
+
+        self.assertIsNotNone(request.id)
+        allocated_resource: list[AllocationModel] = [
+            item
+            for item
+            in AllocationManager.list_all_items()
+            if item.source_request_id == request.id
+        ]
+        self.assertEqual(len(allocated_resource), 1)
+        self.assertEqual(allocated_resource[0].allocated_resource_id, 3)
+        self.sess.refresh(request)
+        self.assertEqual(
+            request.request_status.request_status,
+            RequestStatusEnum.completed.value,
+        )
+
+        #   New request to a busy resource - should get a different free resource in the same group
+        request = RequestManager.create_item(
+            {
+                "iteration_id": 1,
+                "requested_date": dt.date(2020, 1, 2),
+                "user_id": 2,
+                "requested_resource_id": 3,
+            },
+        )
+        allocated_resource: list[AllocationModel] = [
+            item
+            for item
+            in AllocationManager.list_all_items()
+            if item.source_request_id == request.id
+        ]
+        self.assertEqual(len(allocated_resource), 1)
+        self.assertEqual(allocated_resource[0].allocated_resource_id, 4)
+        self.sess.refresh(request)
+        self.assertEqual(
+            request.request_status.request_status,
+            RequestStatusEnum.completed.value,
+        )
+
+        #   New request when no resources are free
+        request = RequestManager.create_item(
+            {
+                "iteration_id": 1,
+                "requested_date": dt.date(2020, 1, 2),
+                "user_id": 3,
+                "requested_resource_id": 3,
+            },
+        )
+        allocated_resource = [
+            item
+            for item
+            in AllocationManager.list_all_items()
+            if item.source_request_id == request.id
+        ]
+        self.assertEqual(len(allocated_resource), 0)
+        self.sess.refresh(request)
+        self.assertEqual(
+            request.request_status.request_status,
+            RequestStatusEnum.declined.value,
+        )
+
+    def test_request_group_after_allocation(self):
+        _ = AllocationManager.automatic_allocation(self.allocation_args)
+
+        #   New request to a free resource
+        request = RequestManager.create_item(
+            {
+                "iteration_id": 1,
+                "requested_date": dt.date(2020, 1, 2),
+                "user_id": 1,
+                "requested_resource_group_id": 4,
+            },
+        )
+
+        self.assertIsNotNone(request.id)
+        allocated_resource: list[AllocationModel] = [
+            item
+            for item
+            in AllocationManager.list_all_items()
+            if item.source_request_id == request.id
+        ]
+        self.assertEqual(len(allocated_resource), 1)
+        self.assertEqual(allocated_resource[0].allocated_resource_id, 3)
+        self.sess.refresh(request)
+        self.assertEqual(
+            request.request_status.request_status,
+            RequestStatusEnum.completed.value,
+        )
+
+        #   New request to a busy resource - should get a different free resource in the same group
+        request = RequestManager.create_item(
+            {
+                "iteration_id": 1,
+                "requested_date": dt.date(2020, 1, 2),
+                "user_id": 2,
+                "requested_resource_group_id": 4,
+            },
+        )
+        allocated_resource: list[AllocationModel] = [
+            item
+            for item
+            in AllocationManager.list_all_items()
+            if item.source_request_id == request.id
+        ]
+        self.assertEqual(len(allocated_resource), 1)
+        self.assertEqual(allocated_resource[0].allocated_resource_id, 4)
+        self.sess.refresh(request)
+        self.assertEqual(
+            request.request_status.request_status,
+            RequestStatusEnum.completed.value,
+        )
+
+        #   New request when no resources are free
+        request = RequestManager.create_item(
+            {
+                "iteration_id": 1,
+                "requested_date": dt.date(2020, 1, 2),
+                "user_id": 3,
+                "requested_resource_group_id": 4,
+            },
+        )
+        allocated_resource = [
+            item
+            for item
+            in AllocationManager.list_all_items()
+            if item.source_request_id == request.id
+        ]
+        self.assertEqual(len(allocated_resource), 0)
+        self.sess.refresh(request)
+        self.assertEqual(
+            request.request_status.request_status,
+            RequestStatusEnum.declined.value,
         )
