@@ -4,7 +4,7 @@ Main module
 This module is the entry point to the appliation crateing and returning a Flask object
 """
 
-from flask import Flask
+from flask import Flask, request, Response, abort
 from flask_restful import Api
 
 from resource_allocator.config import Config
@@ -22,7 +22,7 @@ def create_app() -> Flask:
     Returns:
         flask.Flask: instantiated Flask application
     """
-    _ = Config.from_environment()
+    config = Config.from_environment()
     sess = get_session()
     app = Flask(__name__)
     api = Api(app)
@@ -30,9 +30,35 @@ def create_app() -> Flask:
     for route in routes:
         api.add_resource(*route)
 
+    @app.before_request
+    def check_origin():
+        origin = request.headers.get("Origin")
+        if origin is None:
+            return
+
+        if not config.ALLOWED_ORIGINS:
+            abort(400, "No request origins allowed")
+
+        if origin not in config.ALLOWED_ORIGINS:
+            abort(400, f"Request origin {origin} not allowed")
+
     @app.after_request
     def commit(response):
         sess.commit()
+        return response
+
+    @app.after_request
+    def add_cors(response: Response):
+        origin = request.headers.get("Origin")
+        if not origin or not config.ALLOWED_ORIGINS:
+            return response
+
+        if origin not in config.ALLOWED_ORIGINS:
+            #   Error has been handled by check_origin
+            return response
+
+        origin = origin if origin in config.ALLOWED_ORIGINS else config.ALLOWED_ORIGINS[0]
+        response.headers.add("Access-Control-Allow-Origin", origin)
         return response
 
     return app

@@ -17,7 +17,7 @@ class ConfigTestCase(unittest.TestCase):
     def setUp(self):
         self.kwargs = {item.name: item.name for item in fields(Config) if item.init}
         self.kwargs["LOCAL_LOGIN_ENABLED"] = "yes"
-        self.kwargs["DB_PORT"] = 12
+        self.kwargs["DB_PORT"] = "12"
 
     def tearDown(self):
         Config.reset_instance()

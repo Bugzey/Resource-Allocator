@@ -19,7 +19,7 @@ class Config:
     #   Database
     DB_DATABASE: str
     DB_HOST: str
-    DB_PORT: str
+    DB_PORT: int = 5432
     DB_USER: str
     DB_PASSWORD: str = field(repr=False)
     URL: url.URL = field(init=False, repr=False)
@@ -27,8 +27,9 @@ class Config:
     #   App settings
     SECRET: str = field(repr=False)
     SERVER_NAME: str | None
+    ALLOWED_ORIGINS: list[str] = field(default_factory=list)
 
-    _sess: Session = None
+    _sess: Session = field(init=False, default=None)
     _default_paths = (
         Path("config"),
         Path().home() / ".resource_allocator",
@@ -76,6 +77,12 @@ class Config:
         if not isinstance(self.LOCAL_LOGIN_ENABLED, bool):
             self.LOCAL_LOGIN_ENABLED = str(self.LOCAL_LOGIN_ENABLED).lower() in ("1", "true", "yes")
 
+        if isinstance(self.ALLOWED_ORIGINS, str):
+            self.ALLOWED_ORIGINS = self.ALLOWED_ORIGINS.split(",")
+
+        if not isinstance(self.DB_PORT, int):
+            self.DB_PORT = int(self.DB_PORT)
+
         self.URL = url.URL.create(
             drivername="postgresql",
             username=self.DB_USER,
@@ -111,6 +118,7 @@ class Config:
             SERVER_NAME=os.environ.get("SERVER_NAME"),
             TENANT_ID=os.environ.get("TENANT_ID"),
             LOCAL_LOGIN_ENABLED=os.environ.get("LOCAL_LOGIN_ENABLED"),
+            ALLOWED_ORIGINS=os.getenv("ALLOWED_ORIGINS"),
         )
 
     @classmethod
@@ -129,16 +137,17 @@ class Config:
         default = config["DEFAULT"]
 
         return cls(
+            AAD_CLIENT_ID=default.get("AAD_CLIENT_ID"),
+            AAD_CLIENT_SECRET=default.get("AAD_CLIENT_SECRET"),
+            REDIRECT_URI=default.get("REDIRECT_URI"),
             DB_USER=default["DB_USER"],
             DB_PASSWORD=default["DB_PASSWORD"],
             DB_HOST=default["DB_HOST"],
             DB_PORT=int(default["DB_PORT"]),
             DB_DATABASE=default["DB_DATABASE"],
             SECRET=default["SECRET"],
-            AAD_CLIENT_ID=default.get("AAD_CLIENT_ID"),
-            AAD_CLIENT_SECRET=default.get("AAD_CLIENT_SECRET"),
-            REDIRECT_URI=default.get("REDIRECT_URI"),
             SERVER_NAME=default.get("SERVER_NAME"),
             TENANT_ID=default.get("SERVER_NAME"),
             LOCAL_LOGIN_ENABLED=default.getboolean("LOCAL_LOGIN_ENABLED"),
+            ALLOWED_ORIGINS=default.get("ALLOWED_ORIGINS"),
         )
