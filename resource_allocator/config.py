@@ -7,22 +7,26 @@ from sqlalchemy.orm import Session
 from sqlalchemy.engine import url
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Config:
-    AAD_CLIENT_ID: str | None
-    AAD_CLIENT_SECRET: str | None
-    AZURE_CONFIGURED: bool = field(init=False)
+    #   Authentication
+    AAD_CLIENT_ID: str | None = None
+    AAD_CLIENT_SECRET: str | None = field(default=None, repr=False)
+    TENANT_ID: str | None = None
+    REDIRECT_URI: str | None = None
+    LOCAL_LOGIN_ENABLED: bool = False
+
+    #   Database
     DB_DATABASE: str
     DB_HOST: str
-    DB_PASSWORD: str = field(repr=False)
     DB_PORT: str
     DB_USER: str
-    LOCAL_LOGIN_ENABLED: bool
-    REDIRECT_URI: str | None
+    DB_PASSWORD: str = field(repr=False)
+    URL: url.URL = field(init=False, repr=False)
+
+    #   App settings
     SECRET: str = field(repr=False)
     SERVER_NAME: str | None
-    TENANT_ID: str | None
-    URL: str = field(init=False, repr=False)
 
     _sess: Session = None
     _default_paths = (
@@ -50,11 +54,27 @@ class Config:
         """
         Create compound variables or variables that depend on others
         """
-        self.AZURE_CONFIGURED = self.AAD_CLIENT_ID is not None \
-            and self.AAD_CLIENT_SECRET is not None \
-            and self.REDIRECT_URI is not None \
-            and self.SERVER_NAME is not None \
-            and self.TENANT_ID is not None
+        if (
+            self.AAD_CLIENT_ID is None
+            or self.AAD_CLIENT_SECRET is None
+            or self.REDIRECT_URI is None
+            or self.TENANT_ID is None
+        ) and not (
+            self.AAD_CLIENT_ID is None
+            and self.AAD_CLIENT_SECRET is None
+            and self.REDIRECT_URI is None
+            and self.TENANT_ID is None
+        ):
+            raise ValueError(
+                "Either all or none of AAD_CLIENT_ID, AAD_CLIENT_SECRET, REDIRECT_URI, TENANT_ID "
+                "must be configured"
+            )
+
+        if not self.AZURE_CONFIGURED and not self.LOCAL_LOGIN_ENABLED:
+            raise ValueError("Either Azure or local logins must be enabled")
+
+        if not isinstance(self.LOCAL_LOGIN_ENABLED, bool):
+            self.LOCAL_LOGIN_ENABLED = str(self.LOCAL_LOGIN_ENABLED).lower() in ("1", "true", "yes")
 
         self.URL = url.URL.create(
             drivername="postgresql",
@@ -65,6 +85,10 @@ class Config:
             database=self.DB_DATABASE,
         )
         self.__class__._instance.append(self)
+
+    @property
+    def AZURE_CONFIGURED(self) -> bool:
+        return self.AAD_CLIENT_ID is not None
 
     @classmethod
     def from_environment(cls) -> "Config":
@@ -86,7 +110,7 @@ class Config:
             REDIRECT_URI=os.environ.get("REDIRECT_URI"),
             SERVER_NAME=os.environ.get("SERVER_NAME"),
             TENANT_ID=os.environ.get("TENANT_ID"),
-            LOCAL_LOGIN_ENABLED=os.environ.get("LOCAL_LOGIN_ENABLED") in (None, "1", "yes", "true"),
+            LOCAL_LOGIN_ENABLED=os.environ.get("LOCAL_LOGIN_ENABLED"),
         )
 
     @classmethod
