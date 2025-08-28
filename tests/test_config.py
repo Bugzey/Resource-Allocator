@@ -17,15 +17,28 @@ class ConfigTestCase(unittest.TestCase):
     def setUp(self):
         self.kwargs = {item.name: item.name for item in fields(Config) if item.init}
         self.kwargs["LOCAL_LOGIN_ENABLED"] = "yes"
-        self.kwargs["DB_PORT"] = 12
+        self.kwargs["DB_PORT"] = "12"
 
     def tearDown(self):
         Config.reset_instance()
 
-    def test_init(self):
+    def test_init_no_azure(self):
+        self.kwargs.pop("AAD_CLIENT_ID")
+        self.kwargs.pop("AAD_CLIENT_SECRET")
+        self.kwargs.pop("TENANT_ID")
+        self.kwargs.pop("REDIRECT_URI")
+
+        config = Config(**self.kwargs)
+        self.assertTrue(isinstance(config, Config))
+        self.assertFalse(config.AZURE_CONFIGURED)
+        self.assertTrue(config.LOCAL_LOGIN_ENABLED)
+
+    def test_init_with_azure(self):
+        self.kwargs.pop("LOCAL_LOGIN_ENABLED")
         config = Config(**self.kwargs)
 
         self.assertTrue(isinstance(config, Config))
+        self.assertFalse(config.LOCAL_LOGIN_ENABLED)
 
         #   Check compounds
         self.assertTrue(config.AZURE_CONFIGURED)
