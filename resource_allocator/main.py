@@ -59,6 +59,9 @@ def create_app() -> Flask:
 
         origin = origin if origin in config.ALLOWED_ORIGINS else config.ALLOWED_ORIGINS[0]
         response.headers.add("Access-Control-Allow-Origin", origin)
+
+        allowed_headers = ["Authorization", "Content-Type"]
+        response.headers.add("Access-Control-Allow-Headers", ", ".join(allowed_headers))
         return response
 
     return app
