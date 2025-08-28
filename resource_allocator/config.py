@@ -71,11 +71,11 @@ class Config:
                 "must be configured"
             )
 
-        if not self.AZURE_CONFIGURED and not self.LOCAL_LOGIN_ENABLED:
-            raise ValueError("Either Azure or local logins must be enabled")
-
         if not isinstance(self.LOCAL_LOGIN_ENABLED, bool):
             self.LOCAL_LOGIN_ENABLED = str(self.LOCAL_LOGIN_ENABLED).lower() in ("1", "true", "yes")
+
+        if not self.AZURE_CONFIGURED and not self.LOCAL_LOGIN_ENABLED:
+            raise ValueError("Either Azure or local logins must be enabled")
 
         if isinstance(self.ALLOWED_ORIGINS, str):
             self.ALLOWED_ORIGINS = self.ALLOWED_ORIGINS.split(",")
