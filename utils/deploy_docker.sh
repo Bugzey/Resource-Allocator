@@ -5,20 +5,21 @@ then
 	exit 1
 fi
 
-docker build --tag resource_allocator:latest .
-docker run --name resource_allocator \
+echo docker run \
+	--name "${CONTAINER_IMAGE:-resource_allocator:latest}" \
+	-e AAD_CLIENT_ID \
+	-e AAD_CLIENT_SECRET \
+	-e REDIRECT_URI \
+	-e TENANT_ID \
+	-e LOCAL_LOGIN_ENABLED \
 	-e DB_USER \
 	-e DB_PASSWORD \
 	-e DB_HOST \
 	-e DB_PORT \
 	-e DB_DATABASE \
+	-e ALLOWED_ORIGINS \
 	-e SECRET \
-	-e AAD_CLIENT_ID \
-	-e AAD_CLIENT_SECRET \
-	-e REDIRECT_URI \
-	-e TENANT_ID \
 	-e SERVER_NAME \
-	-e LOCAL_LOGIN_ENABLED \
 	--publish 5000:5000 \
 	--detach \
 	resource_allocator
