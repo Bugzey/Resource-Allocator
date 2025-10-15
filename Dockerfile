@@ -1,4 +1,4 @@
-from python:3.10
+from python:3.12
 
 workdir resource_allocator
 
