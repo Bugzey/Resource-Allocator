@@ -7,7 +7,7 @@ name = "resource_allocator"
 version = "0.3.0"
 description = "Resource planner is an automated back-end API to facilitate the reservation and allocation of loosely-defined resources such as desks in an office space."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12,<3.13"  # remove upper bound when we remove classmethod -> property
 license = {file = "LICENSE"}
 authors = [
 	{name = "Bugzey", email = "radddi@abv.bg"},
@@ -23,9 +23,14 @@ dependencies = [
 	"psycopg2-binary",
 	"pyjwt",
 	"requests",
+	"sqlalchemy~=2.0",
 ]
 
 [project.optional-dependencies]
+dev = [
+	"flake8",
+	"flake8-pyproject",
+]
 
 [project.urls]
 homepage = "https://github.com/Bugzey/Resource-Allocator"

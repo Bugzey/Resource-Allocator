@@ -1,5 +1,3 @@
-alembic
-build
 flask
 flask_httpauth
 flask_restful
@@ -9,5 +7,4 @@ pillow
 psycopg2-binary
 pyjwt
 requests
-setuptools
-
+sqlalchemy~=2.0
