@@ -52,15 +52,18 @@ REDIRECT_URI        |Redirect URI set in Azure for the app (should be `https://l
 TENANT_ID           |Azure Tenant ID whose registered users can log in                                       |-
 LOCAL_LOGIN_ENABLED |Whether local login and registration with username and password is allowed (1,yes,true) |no
 **Database**        |                                                                                        |
-USER                |Username for connecting to the relational (PostgreSQL) database                         |-
-PASSWORD            |Password for connecting to the relational database                                      |-
-SERVER              |Database server hostname                                                                |-
-PORT                |Database server port                                                                    |5432
-DATABASE            |Database (catalog) name to use                                                          |-
+DB_USER             |Username for connecting to the relational (PostgreSQL) database                         |-
+DB_PASSWORD         |Password for connecting to the relational database                                      |-
+DB_SERVER           |Database server hostname                                                                |-
+DB_PORT             |Database server port                                                                    |5432
+DB_DATABASE         |Database (catalog) name to use                                                          |-
 **App Settings**    |                                                                                        |
 ALLOWED_ORIGINS     |Comma-separated list of allowed request origins - for use by web-based front-ends       |-
 SECRET              |Long string to use as an application secret for encoding and decoding tokens            |-
 SERVER_NAME         |Full URL of the server where `resource_allocator` is deployed                           |-
+**Deployment**      |                                                                                        |
+CONTAINER_IMAGE     |Name of the container image when building Docker                                        |`resource_allocator:latest`
+
 
 Local log-ins can be disabled by setting the environment variable `LOCAL_LOGIN_ENABLED` to anything
 other than "1", "yes" or "true". If not set, it defaults to "false".
