@@ -5,6 +5,7 @@ Base manager object to provide standardized operations
 from abc import ABC, abstractmethod
 
 import sqlalchemy as db
+from sqlalchemy import select, column
 
 from resource_allocator.db import get_session
 
@@ -48,9 +49,31 @@ class BaseManager(ABC):
         return item
 
     @classmethod
-    def list_all_items(cls) -> list[db.Table]:
-        items = cls.sess.query(cls.model).all()
-        return items
+    def list_all_items(
+        cls,
+        limit: int = 200,
+        offset: int = 0,
+        order_by: list[str] | None = None,
+    ) -> list[db.Table]:
+        order_by = order_by or []
+        order_by = [
+            (
+                column(item.replace("-", "")).desc()
+                if "-" in item
+                else column(item)
+            )
+            for item
+            in order_by
+        ]
+        query = (
+            select(cls.model)
+            .limit(limit)
+            .offset(offset)
+        )
+        if order_by:
+            query = query.order_by(*order_by)
+        result = cls.sess.scalars(query).all()
+        return result
 
     @classmethod
     def create_item(cls, data: dict) -> db.Table:

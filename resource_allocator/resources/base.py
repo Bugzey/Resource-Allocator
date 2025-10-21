@@ -6,6 +6,7 @@ from functools import wraps
 from typing import Callable
 
 from flask import request, abort
+from werkzeug.datastructures import MultiDict
 from flask_restful import Resource
 from marshmallow import Schema
 
@@ -56,6 +57,36 @@ class BaseResource(ABC, Resource):
 
         return inner
 
+    @classmethod
+    def _paginate(self, args: MultiDict) -> tuple[int, int, list[str]]:
+        """
+        Check if limit, offset and order by are valid
+        """
+        limit = args.get("limit", "200")
+        offset = args.get("offset", "0")
+        order_by = args.getlist("order_by")  # returns empty list if key is missing
+
+        #   Errors
+        errors = {}
+        if not limit.isnumeric() or not int(limit) > 0 or int(limit) > 1000:
+            errors["limit"] = "Limit must be numeric, positive and less than 1000"
+        if not offset.isnumeric() or not int(offset) >= 0:
+            errors["offset"] = "Offset must be numeric and non-negative"
+
+        schema = self.response_schema()
+        if missing := [
+            item.replace("-", "")
+            for item
+            in order_by
+            if item.replace("-", "") not in schema.fields
+        ]:
+            errors["order_by"] = f"Order by fields not found: {', '.join(missing)}"
+
+        if errors:
+            abort(400, errors)
+
+        return int(limit), int(offset), order_by
+
     @auth.login_required
     @check_read
     def get(self, id: int | None = None) -> dict | list:
@@ -69,14 +100,15 @@ class BaseResource(ABC, Resource):
             dict: dictionary response if querying a single object or a list if querying
             multiple objects
         """
-        #   Can't use decorators with arguments in base classes before the properties are redefined
-        #   in child classes
-        if id is None:
-            result = self.manager.list_all_items()
-            return self.response_schema().dump(result, many=True)
+        #   Return a single item
+        if id is not None:
+            result = self.manager.list_single_item(id)
+            return self.response_schema().dump(result)
 
-        result = self.manager.list_single_item(id)
-        return self.response_schema().dump(result)
+        #   Return a list with limit, offset and group by
+        limit, offset, order_by = self._paginate(request.args)
+        result = self.manager.list_all_items(limit=limit, offset=offset, order_by=order_by)
+        return self.response_schema().dump(result, many=True)
 
     @auth.login_required
     @check_write
