@@ -40,7 +40,7 @@ class UserManager(BaseManager):
     @check_configured(
         check_fun=lambda: Config.get_instance().LOCAL_LOGIN_ENABLED,
         error_code=400,
-        error_message="Local logins are not enabled on this server",
+        error_message="Local registrations are not enabled on this server",
     )
     def register(cls, data: dict) -> dict[str, str]:
         data = data.copy()
@@ -62,11 +62,6 @@ class UserManager(BaseManager):
         return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
 
     @classmethod
-    @check_configured(
-        check_fun=lambda: Config.get_instance().LOCAL_LOGIN_ENABLED,
-        error_code=400,
-        error_message="Local logins are not enabled on this server",
-    )
     def login(cls, data: dict) -> dict[str, str]:
         user = cls.sess.query(UserModel).where(UserModel.email == data["email"]).first()
         if not user:
