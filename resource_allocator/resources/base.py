@@ -11,6 +11,7 @@ from marshmallow import Schema
 
 from resource_allocator.managers.user import auth, get_user_role
 from resource_allocator.managers.base import BaseManager
+from resource_allocator.schemas.base import BaseSchema
 
 
 class BaseResource(ABC, Resource):
@@ -125,14 +126,12 @@ class BaseResource(ABC, Resource):
             abort(400, "Put action requires an object ID")
 
         data = request.get_json()
-        existing = self.request_schema().dump(self.manager.list_single_item(id))
-        existing = {key: value for key, value in existing.items() if value is not None}
-        combined = {**existing, **data}
+        data["id"] = id
 
         #   Can't validate the schema with a decorator while using a base resource
-        errors = self.request_schema().validate(combined, partial=True)
+        errors = self.request_schema().validate(data, partial=True)
         if errors:
             return abort(400, f"Data validation errors: {errors}")
 
-        result = self.manager.modify_item(id, self.request_schema().load(combined))
+        result = self.manager.modify_item(id, self.request_schema().load(data, partial=True))
         return self.response_schema().dump(result)

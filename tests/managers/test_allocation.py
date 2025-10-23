@@ -12,7 +12,7 @@ from resource_allocator.managers.iteration import IterationManager
 from resource_allocator.managers.request import RequestManager
 from resource_allocator.managers.resource import ResourceManager, ResourceGroupManager
 from resource_allocator.managers.resource_to_group import ResourceToGroupManager
-from resource_allocator.managers.user import UserManager
+from resource_allocator.managers.user import AuthManager
 from resource_allocator.models import (
     metadata, populate_enums, AllocationModel, IterationModel, RequestStatusEnum
 )
@@ -50,7 +50,7 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "last_name": "bla",
             },
         ]
-        [UserManager.register(user) for user in self.users]
+        [AuthManager.register(user) for user in self.users]
 
         self.resource_groups = [
             {

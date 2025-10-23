@@ -148,3 +148,6 @@ cython_debug/
 
 # Linux deploy logging
 nohup.out
+
+# Client caches
+/*.json

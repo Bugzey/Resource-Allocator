@@ -10,15 +10,23 @@ from urllib.parse import quote
 import jwt
 
 from resource_allocator import models
+from resource_allocator.models import (
+    UserModel,
+    RoleEnum,
+)
 from resource_allocator.config import Config
 from resource_allocator.db import get_session
-from resource_allocator.managers import user
+from resource_allocator.managers.user import (
+    AuthManager,
+    UserManager,
+    verify_token,
+)
 from resource_allocator.utils.db import change_schema
 
 metadata = change_schema(models.metadata, schema="resource_allocator_test")
 
 
-class UserManagerTestCase(unittest.TestCase):
+class AuthManagerTestCase(unittest.TestCase):
     def setUp(self):
         self.config = Config.from_environment()
         self.sess = get_session()
@@ -42,7 +50,7 @@ class UserManagerTestCase(unittest.TestCase):
         metadata.drop_all(bind=self.engine)
 
     def test_register(self):
-        result = user.UserManager.register(self.data)
+        result = AuthManager.register(self.data)
         self.assertTrue(isinstance(result, dict))
         self.assertIn("token", result.keys())
 
@@ -53,7 +61,7 @@ class UserManagerTestCase(unittest.TestCase):
         self.assertIsNotNone(users[0].role_id)
 
         #   First user is admin
-        result = user.UserManager.register({**self.data, "email": "test2@example.com"})
+        result = AuthManager.register({**self.data, "email": "test2@example.com"})
         self._assert_first_user_is_admin()
 
     def _assert_first_user_is_admin(self):
@@ -65,42 +73,42 @@ class UserManagerTestCase(unittest.TestCase):
         self.assertEqual(users[1].role_id, user_role)
 
     def test_login(self):
-        _ = user.UserManager.register(self.data)
-        result = user.UserManager.login(self.data)
+        _ = AuthManager.register(self.data)
+        result = AuthManager.login(self.data)
         self.assertTrue(isinstance(result, dict))
         self.assertIn("token", result.keys())
 
     def test_login_invalid_password(self):
-        _ = user.UserManager.register(self.data)
-        result = user.UserManager.login({**self.data, "password": "invalid_pass"})
+        _ = AuthManager.register(self.data)
+        result = AuthManager.login({**self.data, "password": "invalid_pass"})
         self.assertIn("Invalid password", result)
 
     def test_login_invalid_user(self):
-        _ = user.UserManager.register(self.data)
-        result = user.UserManager.login({**self.data, "email": "bla@example.com"})
+        _ = AuthManager.register(self.data)
+        result = AuthManager.login({**self.data, "email": "bla@example.com"})
         self.assertIn("No such user", result[0])  # message
 
     def test_login_azure_init(self):
         #   Default flow
-        result = user.UserManager.login_azure_init()
+        result = AuthManager.login_azure_init()
         self.assertIsInstance(result, dict)
         self.assertIn("auth_url", result)
         self.assertIn(quote(self.config.REDIRECT_URI, safe=""), result["auth_url"])
 
         #   Valid custom redirect
-        result = user.UserManager.login_azure_init({"redirect_uri": "http://localhost:9090/bla"})
+        result = AuthManager.login_azure_init({"redirect_uri": "http://localhost:9090/bla"})
         self.assertIsInstance(result, dict)
         self.assertIn("auth_url", result)
         self.assertIn(quote("http://localhost:9090/bla", safe=""), result["auth_url"])
 
         #   Invalid domains
-        result = user.UserManager.login_azure_init({"redirect_uri": "https://hacker-domain.com"})
+        result = AuthManager.login_azure_init({"redirect_uri": "https://hacker-domain.com"})
         self.assertIsInstance(result, tuple)
         self.assertIn("can only be localhost", result[0])
         self.assertIn("hacker-domain.com", result[0])
 
     def test_register_azure(self):
-        result = user.UserManager._register_azure(self.azure_response)
+        result = AuthManager._register_azure(self.azure_response)
         self.assertTrue(isinstance(result, models.UserModel))
 
         users = self.sess.query(models.UserModel).all()
@@ -111,7 +119,7 @@ class UserManagerTestCase(unittest.TestCase):
         self.assertTrue(users[0].is_external)
 
         #   First user is admin
-        result = user.UserManager.register({**self.data, "email": "test2@example.com"})
+        result = AuthManager.register({**self.data, "email": "test2@example.com"})
         self._assert_first_user_is_admin()
 
     @patch("resource_allocator.managers.user.get_azure_user_info")
@@ -123,7 +131,7 @@ class UserManagerTestCase(unittest.TestCase):
         req_session.__enter__.return_value = auth_response
         get_azure_user_info.return_value = self.azure_response
 
-        result = user.UserManager.login_azure_finish(
+        result = AuthManager.login_azure_finish(
             data={
                 "email": self.data["email"],
                 "code": "some_code",
@@ -138,6 +146,55 @@ class UserManagerTestCase(unittest.TestCase):
         self.assertIsNone(users[0].password_hash)
         self.assertIsNotNone(users[0].role_id)
         self.assertTrue(users[0].is_external)
+
+
+class UserManagerTestCase(unittest.TestCase):
+    def setUp(self):
+        self.config = Config.from_environment()
+        self.sess = get_session()
+        self.engine = self.sess.bind
+        metadata.create_all(self.engine)
+        models.populate_enums(self.sess)
+        self.users = [
+            {
+                "email": "admin@example.com",
+                "password": 123456,
+                "first_name": "bla",
+                "last_name": "bla",
+            },
+            {
+                "email": "user@example.com",
+                "password": 123456,
+                "first_name": "bla",
+                "last_name": "bla",
+            },
+        ]
+        [AuthManager.register(user) for user in self.users]
+
+    def tearDown(self):
+        self.sess.rollback()
+        metadata.drop_all(bind=self.engine)
+
+    def test_get(self):
+        result = UserManager.list_single_item(1)
+        self.assertIsInstance(result, UserModel)
+        self.assertEqual(result.email, self.users[0]["email"])
+        self.assertEqual(result.role.role, RoleEnum.admin.value)
+
+    def test_modify(self):
+        #   Normal items
+        old_user = UserManager.list_single_item(2)
+        old_pass = old_user.password_hash
+        result = UserManager.modify_item(
+            2,
+            {
+                "first_name": "alb",
+                "password": "123ABC",
+            },
+        )
+        self.assertEqual(result.first_name, "alb")
+        self.assertEqual(result.last_name, "bla")
+        self.assertNotEqual(result.password_hash, old_pass)
 
 
 class VerifyTokenTestCase(unittest.TestCase):
@@ -164,15 +221,15 @@ class VerifyTokenTestCase(unittest.TestCase):
     def test_verify_token(self, mock_sess: MagicMock):
         with self.subTest("Good token"):
             mock_sess.return_value.get.return_value = "12"
-            result = user.verify_token(self.good_token)
+            result = verify_token(self.good_token)
             self.assertEqual(result, "12")
             mock_sess.return_value.get.assert_called()
 
         with self.subTest("Expired token"):
-            result = user.verify_token(self.expired_token)
+            result = verify_token(self.expired_token)
             self.assertFalse(result)
 
         with self.subTest("Missing user"):
             mock_sess.return_value.get.return_value = None
-            result = user.verify_token(self.good_token)
+            result = verify_token(self.good_token)
             self.assertTrue(result)
