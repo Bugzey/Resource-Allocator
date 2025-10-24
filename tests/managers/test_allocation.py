@@ -21,7 +21,7 @@ from resource_allocator.utils.db import change_schema
 metadata = change_schema(metadata, schema="resource_allocator_test")
 
 
-class AllocationManagerTestCase(unittest.TestCase):
+class AutomaticAllocationTestCase(unittest.TestCase):
     def setUp(self):
         self.config = Config.from_environment()
         self.sess = get_session()
@@ -176,6 +176,12 @@ class AllocationManagerTestCase(unittest.TestCase):
             requests[3].request_status.request_status,
             RequestStatusEnum.completed.value,
         )
+
+        #   Run again - old requests should not get new allocations
+        new = AllocationManager.automatic_allocation(self.allocation_args)
+        self.assertTrue(isinstance(new, list))
+        self.assertEqual(len(new), 0)
+        self.assertEqual(len(AllocationManager.list_all_items()), len(result))
 
     def test_request_resource_after_allocation(self):
         _ = AllocationManager.automatic_allocation(self.allocation_args)
