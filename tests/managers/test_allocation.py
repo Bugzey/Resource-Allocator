@@ -12,16 +12,16 @@ from resource_allocator.managers.iteration import IterationManager
 from resource_allocator.managers.request import RequestManager
 from resource_allocator.managers.resource import ResourceManager, ResourceGroupManager
 from resource_allocator.managers.resource_to_group import ResourceToGroupManager
-from resource_allocator.managers.user import AuthManager
+from resource_allocator.managers.user import AuthManager, UserManager
 from resource_allocator.models import (
-    metadata, populate_enums, AllocationModel, IterationModel, RequestStatusEnum
+    metadata, populate_enums, AllocationModel, IterationModel, RequestStatusEnum, RequestModel,
 )
 from resource_allocator.utils.db import change_schema
 
 metadata = change_schema(metadata, schema="resource_allocator_test")
 
 
-class AutomaticAllocationTestCase(unittest.TestCase):
+class AllocationManagerTestCase(unittest.TestCase):
     def setUp(self):
         self.config = Config.from_environment()
         self.sess = get_session()
@@ -30,7 +30,7 @@ class AutomaticAllocationTestCase(unittest.TestCase):
         metadata.drop_all(self.engine)  # in case of errors during setUp
         metadata.create_all(self.engine)
         populate_enums(self.sess)
-        self.users = [
+        self.users_data = [
             {
                 "email": "user1@example.com",
                 "password": 123456,
@@ -50,9 +50,10 @@ class AutomaticAllocationTestCase(unittest.TestCase):
                 "last_name": "bla",
             },
         ]
-        [AuthManager.register(user) for user in self.users]
+        _ = [AuthManager.register(user) for user in self.users_data]
+        self.users = UserManager.list_all_items()
 
-        self.resource_groups = [
+        self.resource_groups_data = [
             {
                 "name": "top_level",
                 "is_top_level": True,
@@ -72,9 +73,13 @@ class AutomaticAllocationTestCase(unittest.TestCase):
                 "is_top_level": True,
             },
         ]
-        [ResourceGroupManager.create_item(item) for item in self.resource_groups]
+        self.resource_groups = [
+            ResourceGroupManager.create_item(item)
+            for item
+            in self.resource_groups_data
+        ]
 
-        self.resources = [
+        self.resources_data = [
             {
                 "name": "desk1",
                 "top_resource_group_id": 1,
@@ -92,7 +97,7 @@ class AutomaticAllocationTestCase(unittest.TestCase):
                 "top_resource_group_id": 4,
             },
         ]
-        [ResourceManager.create_item(item) for item in self.resources]
+        self.resources = [ResourceManager.create_item(item) for item in self.resources_data]
 
         self.resource_to_group = [
             {
@@ -106,12 +111,11 @@ class AutomaticAllocationTestCase(unittest.TestCase):
         ]
         [ResourceToGroupManager.create_item(item) for item in self.resource_to_group]
 
-        self.iteration = {
+        self.iteration = IterationManager.create_item({
             "start_date": dt.date(2020, 1, 1), "end_date": dt.date(2020, 1, 7),
-        }
-        IterationManager.create_item(self.iteration)
+        })
 
-        self.requests = [
+        self.requests_data = [
             {
                 "iteration_id": 1,
                 "requested_date": dt.date(2020, 1, 1),
@@ -137,7 +141,7 @@ class AutomaticAllocationTestCase(unittest.TestCase):
                 "requested_resource_group_id": 4,
             },  # User 1 requests a resource in a different top resource group id
         ]
-        [RequestManager.create_item(item) for item in self.requests]
+        self.requests = [RequestManager.create_item(item) for item in self.requests_data]
 
         self.allocation_args = {
             "iteration_id": 1,
@@ -146,6 +150,37 @@ class AutomaticAllocationTestCase(unittest.TestCase):
     def tearDown(self):
         self.sess.rollback()
         metadata.drop_all(bind=self.engine)
+
+    def test_create_item(self):
+        result = AllocationManager.create_item(data=dict(
+            iteration_id=self.iteration.id,
+            date=dt.date(2020, 1, 1),
+            user_id=self.users[0].id,
+            allocated_resource_id=self.resources[0].id,
+            source_request_id=self.requests[0].id,
+        ))
+        self.assertIsInstance(result, AllocationModel)
+
+        #   Check that the source request is completed
+        request: RequestModel = self.requests[0]
+        self.assertEqual(request.request_status.request_status, RequestStatusEnum.completed.value)
+
+    def test_delete_item(self):
+        result = AllocationManager.create_item(data=dict(
+            iteration_id=self.iteration.id,
+            date=dt.date(2020, 1, 1),
+            user_id=self.users[0].id,
+            allocated_resource_id=self.resources[0].id,
+            source_request_id=self.requests[0].id,
+        ))
+        self.assertIsInstance(result, AllocationModel)
+
+        #   Delete the allocation
+        AllocationManager.delete_item(result.id)
+
+        #   Check that the source request is completed
+        request: RequestModel = self.requests[0]
+        self.assertEqual(request.request_status.request_status, RequestStatusEnum.declined.value)
 
     def test_automatic_allocation(self):
         result = AllocationManager.automatic_allocation(self.allocation_args)

@@ -50,7 +50,7 @@ class AllocationManager(BaseManager):
         allocation: AllocationModel = cls.list_single_item(id)
         status_declined_id = cls.sess.scalar(
             select(RequestStatusModel.id)
-            .where(RequestStatusModel.request_status == RequestStatusEnum.completed.value)
+            .where(RequestStatusModel.request_status == RequestStatusEnum.declined.value)
         )
         RequestManager.modify_item(
             allocation.source_request_id,
