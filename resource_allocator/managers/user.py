@@ -98,8 +98,18 @@ class AuthManager(BaseManager):
         data = data or {}
         config = cls.config
         custom_redirect = data.get("redirect_uri")
-        if custom_redirect and not custom_redirect.startswith("http://localhost:"):
-            return f"Custom redirects can only be localhost. Got {custom_redirect}", 400
+        if (
+            custom_redirect
+            and not custom_redirect.startswith("http://localhost")
+            and custom_redirect not in config.ALLOWED_ORIGINS
+        ):
+            return (
+                (
+                    f"Custom redirects can only be localhost or from allowed origins. "
+                    f"Got {custom_redirect}"
+                ),
+                400
+            )
 
         return {
             "auth_url": build_azure_ad_auth_url(
