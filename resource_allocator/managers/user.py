@@ -37,10 +37,27 @@ class UserManager(BaseManager):
         return Config.get_instance()
 
     @classmethod
+    def modify_item(cls, id: int, data: dict) -> UserModel:
+        if "password" in data:
+            data["password_hash"] = generate_password_hash(str(data["password"]))
+            del data["password"]
+
+        return super().modify_item(id, data)
+
+
+class AuthManager(BaseManager):
+    model = UserModel
+
+    @classmethod
+    @property
+    def config(cls) -> Config:
+        return Config.get_instance()
+
+    @classmethod
     @check_configured(
         check_fun=lambda: Config.get_instance().LOCAL_LOGIN_ENABLED,
         error_code=400,
-        error_message="Local logins are not enabled on this server",
+        error_message="Local registrations are not enabled on this server",
     )
     def register(cls, data: dict) -> dict[str, str]:
         data = data.copy()
@@ -62,11 +79,6 @@ class UserManager(BaseManager):
         return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
 
     @classmethod
-    @check_configured(
-        check_fun=lambda: Config.get_instance().LOCAL_LOGIN_ENABLED,
-        error_code=400,
-        error_message="Local logins are not enabled on this server",
-    )
     def login(cls, data: dict) -> dict[str, str]:
         user = cls.sess.query(UserModel).where(UserModel.email == data["email"]).first()
         if not user:
@@ -86,8 +98,18 @@ class UserManager(BaseManager):
         data = data or {}
         config = cls.config
         custom_redirect = data.get("redirect_uri")
-        if custom_redirect and not custom_redirect.startswith("http://localhost:"):
-            return f"Custom redirects can only be localhost. Got {custom_redirect}", 400
+        if (
+            custom_redirect
+            and not custom_redirect.startswith("http://localhost")
+            and custom_redirect not in config.ALLOWED_ORIGINS
+        ):
+            return (
+                (
+                    f"Custom redirects can only be localhost or from allowed origins. "
+                    f"Got {custom_redirect}"
+                ),
+                400
+            )
 
         return {
             "auth_url": build_azure_ad_auth_url(
@@ -172,7 +194,7 @@ class UserManager(BaseManager):
             .first()
 
         if not user:
-            user = UserManager._register_azure(user_response)
+            user = cls._register_azure(user_response)
 
         if user.email != data["email"].lower():
             return "Requested email is not the same as Azure AD response email.", 400

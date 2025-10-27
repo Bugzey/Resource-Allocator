@@ -11,17 +11,21 @@ from resource_allocator.resources.resource import (
 )
 from resource_allocator.resources.resource_to_group import ResourceToGroupResource
 from resource_allocator.resources.user import (
-    LoginUser,
-    LoginUserAzure,
-    RegisterUser,
+    LoginUserResource,
+    LoginUserAzureResource,
+    RegisterUserResource,
     UserResource,
 )
 
 
 routes = (
-    (RegisterUser, "/register/"),
-    (LoginUser, "/login/"),
-    (LoginUserAzure, "/login_azure/"),
+    #   Users
+    (RegisterUserResource, "/register/"),
+    (LoginUserResource, "/login/"),
+    (LoginUserAzureResource, "/login_azure/"),
+    (UserResource, "/users/", "/users/<int:id>", "/users/me"),
+
+    #   Resources
     (ResourceResource, "/resources/", "/resources/<int:id>"),
     (ResourceGroupResource, "/resource_groups/", "/resource_groups/<int:id>"),
     (ResourceToGroupResource, "/resource_to_group/", "/resource_to_group/<int:id>"),
@@ -36,5 +40,4 @@ routes = (
         "/allocation/automatic_allocation/",
         "/automatic_allocation/",
     ),
-    (UserResource, "/users/", "/users/<int:id>", "/users/me"),
 )

@@ -27,6 +27,9 @@ class AllocationManager(BaseManager):
         Create allocation and set status to completed
         """
         allocation: AllocationModel = super().create_item(data)
+        if not allocation.source_request_id:
+            return allocation
+
         sess = cls.sess
 
         request_completed_id = sess.scalar(
@@ -38,6 +41,22 @@ class AllocationManager(BaseManager):
             {"request_status_id": request_completed_id}
         )
         return allocation
+
+    @classmethod
+    def delete_item(cls, id: int) -> db.Table:
+        """
+        Set an associated request's status to Declined
+        """
+        allocation: AllocationModel = cls.list_single_item(id)
+        status_declined_id = cls.sess.scalar(
+            select(RequestStatusModel.id)
+            .where(RequestStatusModel.request_status == RequestStatusEnum.declined.value)
+        )
+        RequestManager.modify_item(
+            allocation.source_request_id,
+            {"request_status_id": status_declined_id},
+        )
+        return super().delete_item(id)
 
     @classmethod
     def _assign_points(cls, request: RequestModel, resource: ResourceModel) -> int:
@@ -126,16 +145,32 @@ class AllocationManager(BaseManager):
         #   Get the iteration being worked on and associated requests
         iteration = cls.sess.get(IterationModel, data["iteration_id"])
         all_resources = cls.sess.query(ResourceModel).all()
-        request_declined_id = cls.sess.scalar(
-            select(RequestStatusModel.id)
-            .where(RequestStatusModel.request_status == RequestStatusEnum.declined.value)
-        )
+        request_statuses = cls.sess.scalars(select(RequestStatusModel)).all()
+        request_declined_id = [
+            item.id
+            for item
+            in request_statuses
+            if item.request_status == RequestStatusEnum.declined.value
+        ][0]
+        request_completed_id = [
+            item.id
+            for item
+            in request_statuses
+            if item.request_status == RequestStatusEnum.completed.value
+        ][0]
 
-        #   Handle all requests or a single request
+        #   Handle all requests or a single request - limit to non-completed requests
         if "request_id" in data:
             all_requests = [RequestManager.list_single_item(data["request_id"])]
         else:
             all_requests = iteration.requests
+
+        all_requests = [
+            item
+            for item
+            in all_requests
+            if item.request_status_id != request_completed_id
+        ]
 
         #   Get all dates being requested
         all_dates = sorted(list({

@@ -5,7 +5,11 @@ Resources related to working with users
 from flask import request, abort
 from flask_restful import Resource
 
-from resource_allocator.managers.user import UserManager, auth
+from resource_allocator.managers.user import (
+    auth,
+    AuthManager,
+    UserManager,
+)
 from resource_allocator.resources.base import BaseResource
 from resource_allocator.schemas.user import (
     RegisterUserRequestSchema,
@@ -30,10 +34,6 @@ class UserResource(BaseResource):
         abort(400, "Users cannot be created. Use the register endpoint")
 
     @auth.login_required
-    def put(self, id: int):
-        abort(400, "Users cannot be modified at this time")
-
-    @auth.login_required
     def get(self, id: int | None = None) -> dict | list:
         if request.path.endswith("me"):
             id = auth.current_user().id
@@ -41,7 +41,7 @@ class UserResource(BaseResource):
         return super().get(id)
 
 
-class RegisterUser(Resource):
+class RegisterUserResource(Resource):
     """
     API endpoint for registering users
 
@@ -60,7 +60,7 @@ class RegisterUser(Resource):
             dict: dictionary with a Bearer token
         """
         data = request.get_json()
-        result = UserManager.register(data)
+        result = AuthManager.register(data)
 
         #   In case manager returns ("message", error_code)
         if len(result) > 1:
@@ -69,7 +69,7 @@ class RegisterUser(Resource):
         return LoginUserResponseSchema().dump(result)
 
 
-class LoginUser(Resource):
+class LoginUserResource(Resource):
     """
     API endpoint for logging in a user
 
@@ -88,7 +88,7 @@ class LoginUser(Resource):
             dict: dictionary with a Bearer token
         """
         data = request.get_json()
-        result = UserManager.login(data)
+        result = AuthManager.login(data)
 
         #   In case manager returns ("message", error_code)
         if len(result) > 1:
@@ -97,7 +97,7 @@ class LoginUser(Resource):
         return LoginUserResponseSchema().dump(result)
 
 
-class LoginUserAzure(Resource):
+class LoginUserAzureResource(Resource):
     """
     API Endpoint for logging in and implicitly registering external users via Azure Active Directory
 
@@ -106,12 +106,12 @@ class LoginUserAzure(Resource):
         post: finish the Azure log-in process by consuming an authorization code
     """
     def get(self) -> dict:
-        return UserManager.login_azure_init(data=request.args)
+        return AuthManager.login_azure_init(data=request.args)
 
     @validate_schema(LoginUserAzureRequestSchema)
     def post(self) -> dict:
         data = request.get_json()
-        result = UserManager.login_azure_finish(data)
+        result = AuthManager.login_azure_finish(data)
 
         #   In case manager returns ("message", error_code)
         if len(result) > 1:
