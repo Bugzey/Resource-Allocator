@@ -41,10 +41,7 @@ class BaseManager(ABC):
         Returns:
             db.Table
         """
-        item = cls.sess.get(cls.model, id)
-        if not item:
-            return f"{cls.model.__tablename__} not found: {id}", 404
-
+        item = cls.sess.get(cls.model, id)  # can be None
         return item
 
     @classmethod
@@ -64,9 +61,9 @@ class BaseManager(ABC):
 
     @classmethod
     def delete_item(cls, id: int) -> db.Table:
-        item = cls.sess.get(cls.model, id)
+        item = cls.sess.get(cls.model, id)  # can be None
         if not item:
-            return f"{cls.model.__tablename__} not found", 404
+            return item
 
         cls.sess.delete(item)
         cls.sess.flush()
@@ -74,9 +71,9 @@ class BaseManager(ABC):
 
     @classmethod
     def modify_item(cls, id: int, data: dict) -> db.Table:
-        item = cls.sess.get(cls.model, id)
+        item = cls.sess.get(cls.model, id)  # can be None
         if not item:
-            return f"{cls.model.__tablename__} not found", 404
+            return item
 
         for key in set(cls.nested_managers.keys()) & set(data.keys()):
             nested_manager = cls.nested_managers[key]

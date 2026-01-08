@@ -11,7 +11,6 @@ from marshmallow import Schema
 
 from resource_allocator.managers.user import auth, get_user_role
 from resource_allocator.managers.base import BaseManager
-from resource_allocator.schemas.base import BaseSchema
 
 
 class BaseResource(ABC, Resource):

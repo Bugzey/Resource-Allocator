@@ -50,7 +50,7 @@ class BaseManagerTestCase(unittest.TestCase):
 
         with self.subTest("Missing"):
             result = self.SomeManager.list_single_item(id=item.id - 1)
-            self.assertIn("not found", result[0])
+            self.assertIsNone(result)
 
     def test_list_all_items(self):
         item = self.SomeManager.create_item(self.item)
@@ -64,7 +64,7 @@ class BaseManagerTestCase(unittest.TestCase):
         item = self.SomeManager.create_item(self.item)
         self.SomeManager.delete_item(item.id)
         result = self.SomeManager.list_all_items()
-        self.assertEqual(len(result), 0)
+        self.assertEqual(result, [])
 
         second_result = self.SomeManager.delete_item(item.id)
-        self.assertIn("not found", second_result[0])
+        self.assertIsNone(second_result)
