@@ -2,24 +2,23 @@
 Allocation-related request schemas
 """
 
-from marshmallow import Schema, fields, validates, validates_schema, ValidationError
+from marshmallow import fields, validates, validates_schema, ValidationError
 from sqlalchemy import select
 
 from resource_allocator.db import get_session
-from resource_allocator.schemas.base import BaseSchema
+from resource_allocator.schemas.base import BaseRequestSchema, BaseResponseSchema
 from resource_allocator.models import (
     IterationModel, UserModel, RequestModel, ResourceModel, AllocationModel,
 )
 
 
-class AllocationRequestSchema(Schema):
+class AllocationRequestSchema(BaseRequestSchema):
     iteration_id = fields.Integer(required=True)
     date = fields.Date(required=True)
     user_id = fields.Integer(required=True)
     source_request_id = fields.Integer(required=True)
     allocated_resource_id = fields.Integer(required=True)
     points = fields.Integer()
-    id = fields.Integer()  # To allow modifications
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
@@ -81,7 +80,7 @@ class AllocationRequestSchema(Schema):
             raise ValidationError(f"User or resource already allocated for date {data['date']}")
 
 
-class AllocationAutomaticAllocationSchema(Schema):
+class AllocationAutomaticAllocationSchema(BaseRequestSchema):
     iteration_id = fields.Integer(required=True)
     request_id = fields.Integer()
 
@@ -98,5 +97,5 @@ class AllocationAutomaticAllocationSchema(Schema):
             raise ValidationError(f"Invalid request_id. {value}")
 
 
-class AllocationResponseSchema(BaseSchema, AllocationRequestSchema):
+class AllocationResponseSchema(BaseResponseSchema, AllocationRequestSchema):
     pass

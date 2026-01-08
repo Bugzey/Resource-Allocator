@@ -128,6 +128,15 @@ class BaseResource(ABC, Resource):
         data["id"] = id
 
         #   Can't validate the schema with a decorator while using a base resource
+        data = {
+            **{
+                key: value
+                for key, value
+                in self.request_schema().dump(self.manager.list_single_item(id)).items()
+                if value is not None
+            },
+            **data,
+        }
         errors = self.request_schema().validate(data, partial=True)
         if errors:
             return abort(400, f"Data validation errors: {errors}")

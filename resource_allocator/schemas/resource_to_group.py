@@ -2,14 +2,14 @@
 Resource to Group schemas
 """
 
-from marshmallow import Schema, fields, validates, ValidationError
+from marshmallow import fields, validates, ValidationError
 
 from resource_allocator.db import get_session
 from resource_allocator.models import ResourceModel, ResourceGroupModel
-from resource_allocator.schemas.base import BaseSchema
+from resource_allocator.schemas.base import BaseRequestSchema, BaseResponseSchema
 
 
-class ResourceToGroupRequestSchema(Schema):
+class ResourceToGroupRequestSchema(BaseRequestSchema):
     resource_id = fields.Integer(required=True)
     resource_group_id = fields.Integer(required=True)
 
@@ -24,5 +24,5 @@ class ResourceToGroupRequestSchema(Schema):
             raise ValidationError(f"Invalid resource_group_id: {value}")
 
 
-class ResourceToGroupResponseSchema(BaseSchema, ResourceToGroupRequestSchema):
+class ResourceToGroupResponseSchema(BaseResponseSchema, ResourceToGroupRequestSchema):
     pass

@@ -9,10 +9,10 @@ from sqlalchemy import select, func
 
 from resource_allocator.db import get_session
 from resource_allocator.models import UserModel, RoleModel, RoleEnum
-from resource_allocator.schemas.base import BaseSchema
+from resource_allocator.schemas.base import BaseRequestSchema, BaseResponseSchema
 
 
-class RegisterUserRequestSchema(Schema):
+class RegisterUserRequestSchema(BaseRequestSchema):
     email = fields.Email(required=True)
     password = fields.String(required=True)
     first_name = fields.String(required=True)
@@ -41,23 +41,23 @@ class RegisterUserRequestSchema(Schema):
             raise ValidationError("Invalid password")
 
 
-class LoginUserRequestSchema(Schema):
+class LoginUserRequestSchema(BaseRequestSchema):
     email = fields.Email(required=True)
     password = fields.String(required=True)
 
 
-class LoginUserResponseSchema(Schema):
+class LoginUserResponseSchema(Schema):  # avoid default response fields - created, updated
     id = fields.Integer()
     token = fields.String()
 
 
-class LoginUserAzureRequestSchema(Schema):
+class LoginUserAzureRequestSchema(BaseRequestSchema):
     email = fields.Email(required=True)
     code = fields.String(required=True)
     redirect_uri = fields.String()
 
 
-class UserRequestSchema(BaseSchema):
+class UserRequestSchema(BaseResponseSchema):
     email = fields.Email()
     password = fields.String()
     first_name = fields.String()
@@ -147,7 +147,7 @@ class UserRequestSchema(BaseSchema):
             )
 
 
-class UserResponseSchema(BaseSchema):
+class UserResponseSchema(BaseResponseSchema):
     email = fields.Email()
     first_name = fields.String()
     last_name = fields.String()

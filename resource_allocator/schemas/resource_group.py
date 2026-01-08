@@ -2,7 +2,7 @@
 Schemas for resource group objects
 """
 
-from marshmallow import Schema, fields, validates, ValidationError
+from marshmallow import fields, validates, ValidationError
 
 from resource_allocator.db import get_session
 from resource_allocator.models import (
@@ -10,10 +10,10 @@ from resource_allocator.models import (
     ImagePropertiesModel,
     ResourceGroupModel,
 )
-from resource_allocator.schemas.base import BaseSchema
+from resource_allocator.schemas.base import BaseRequestSchema, BaseResponseSchema
 
 
-class ResourceGroupRequestSchema(Schema):
+class ResourceGroupRequestSchema(BaseRequestSchema):
     name = fields.String(required=True)
     is_top_level = fields.Boolean(required=True)
     top_resource_group_id = fields.Integer()
@@ -48,7 +48,7 @@ class ResourceGroupRequestSchema(Schema):
             raise ValidationError(f"Invalid image_properties_id: {value}")
 
 
-class ResourceGroupResponseSchema(BaseSchema):
+class ResourceGroupResponseSchema(BaseResponseSchema):
     name = fields.String(required=True)
     is_top_level = fields.Boolean(required=True)
     top_resource_group_id = fields.Integer(required=True)
