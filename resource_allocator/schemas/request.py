@@ -3,7 +3,6 @@ Schemas for request objects
 """
 
 from marshmallow import (
-    Schema,
     fields,
     validates,
     validates_schema,
@@ -19,16 +18,15 @@ from resource_allocator.models import (
     ResourceModel,
     ResourceGroupModel,
 )
-from resource_allocator.schemas.base import BaseSchema
+from resource_allocator.schemas.base import BaseRequestSchema, BaseResponseSchema
 
 
-class RequestRequestSchema(Schema):
+class RequestRequestSchema(BaseRequestSchema):
     iteration_id = fields.Integer(required=True)
     requested_date = fields.Date(required=True)
     user_id = fields.Integer(required=True)
     requested_resource_id = fields.Integer(allow_none=True)
     requested_resource_group_id = fields.Integer(allow_none=True)
-    id = fields.Integer()
 
     @validates("iteration_id")
     def validate_iteration_id(self, value):
@@ -108,5 +106,5 @@ class RequestRequestSchema(Schema):
             )
 
 
-class RequestResponseSchema(BaseSchema, RequestRequestSchema):
+class RequestResponseSchema(BaseResponseSchema, RequestRequestSchema):
     request_status_id = fields.Integer()

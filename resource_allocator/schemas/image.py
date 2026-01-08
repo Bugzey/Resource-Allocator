@@ -2,21 +2,21 @@
 Schemas for imgae objects
 """
 
-from marshmallow import fields, Schema
+from marshmallow import fields
 
-from resource_allocator.schemas.base import BaseSchema
+from resource_allocator.schemas.base import BaseRequestSchema, BaseResponseSchema
 
 
-class ImageRequestSchema(Schema):
+class ImageRequestSchema(BaseRequestSchema):
     image = fields.String(required=True)
 
 
-class ImageResponseSchema(BaseSchema, ImageRequestSchema):
+class ImageResponseSchema(BaseResponseSchema, ImageRequestSchema):
     image_type_id = fields.Integer()
     size_bytes = fields.Integer()
 
 
-class ImagePropertiesRequestSchema(Schema):
+class ImagePropertiesRequestSchema(BaseRequestSchema):
     box_x = fields.Float()
     box_y = fields.Float()
     box_width = fields.Float()
@@ -24,5 +24,5 @@ class ImagePropertiesRequestSchema(Schema):
     box_rotation = fields.Float()
 
 
-class ImagePropertiesResponseSchema(BaseSchema, ImagePropertiesRequestSchema):
+class ImagePropertiesResponseSchema(BaseResponseSchema, ImagePropertiesRequestSchema):
     pass

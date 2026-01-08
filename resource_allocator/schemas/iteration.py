@@ -3,7 +3,6 @@ Iteration-related request schemas
 """
 
 from marshmallow import (
-    Schema,
     ValidationError,
     fields,
     validates_schema,
@@ -12,11 +11,10 @@ from sqlalchemy import select, and_
 
 from resource_allocator.db import get_session
 from resource_allocator.models import IterationModel
-from resource_allocator.schemas.base import BaseSchema
+from resource_allocator.schemas.base import BaseRequestSchema, BaseResponseSchema
 
 
-class IterationRequestSchema(Schema):
-    id = fields.Integer()
+class IterationRequestSchema(BaseRequestSchema):
     start_date = fields.Date(required=True)
     end_date = fields.Date(required=True)
 
@@ -51,5 +49,5 @@ class IterationRequestSchema(Schema):
             )
 
 
-class IterationResponseSchema(BaseSchema, IterationRequestSchema):
+class IterationResponseSchema(BaseResponseSchema, IterationRequestSchema):
     is_allocated = fields.Boolean()
