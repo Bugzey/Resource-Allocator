@@ -2,7 +2,6 @@
 Allocation manager
 """
 
-import sqlalchemy as db
 from sqlalchemy import select
 
 from resource_allocator.models import (
@@ -11,7 +10,6 @@ from resource_allocator.models import (
     ResourceModel,
     RequestModel,
     RequestStatusEnum,
-    RequestStatusModel,
 )
 from resource_allocator.managers.base import BaseManager
 from resource_allocator.managers.iteration import IterationManager
@@ -22,7 +20,7 @@ class AllocationManager(BaseManager):
     model = AllocationModel
 
     @classmethod
-    def create_item(cls, data: dict) -> db.Table:
+    def create_item(cls, data: dict) -> AllocationModel:
         """
         Create allocation and set status to completed
         """
@@ -30,32 +28,26 @@ class AllocationManager(BaseManager):
         if not allocation.source_request_id:
             return allocation
 
-        sess = cls.sess
-
-        request_completed_id = sess.scalar(
-            select(RequestStatusModel.id)
-            .where(RequestStatusModel.request_status == RequestStatusEnum.completed.value)
-        )
-        RequestManager.modify_item(
-            allocation.source_request_id,
-            {"request_status_id": request_completed_id}
-        )
+        RequestManager.approve(allocation.source_request_id)
+        cls.sess.refresh(allocation)
         return allocation
 
     @classmethod
-    def delete_item(cls, id: int) -> db.Table:
+    def delete_item(cls, id: int, decline_request: bool = True) -> AllocationModel:
         """
         Set an associated request's status to Declined
+
+        Args:
+            id: Identifier of the allocation
+            decline_request: whether deleting the allocation should decline the request. This is
+                used when a request is being modified or deleted
+
+        Returns:
+            AllocationModel
         """
         allocation: AllocationModel = cls.list_single_item(id)
-        status_declined_id = cls.sess.scalar(
-            select(RequestStatusModel.id)
-            .where(RequestStatusModel.request_status == RequestStatusEnum.declined.value)
-        )
-        RequestManager.modify_item(
-            allocation.source_request_id,
-            {"request_status_id": status_declined_id},
-        )
+        if decline_request:
+            RequestManager.decline(allocation.source_request_id)
         return super().delete_item(id)
 
     @classmethod
@@ -145,19 +137,6 @@ class AllocationManager(BaseManager):
         #   Get the iteration being worked on and associated requests
         iteration = cls.sess.get(IterationModel, data["iteration_id"])
         all_resources = cls.sess.query(ResourceModel).all()
-        request_statuses = cls.sess.scalars(select(RequestStatusModel)).all()
-        request_declined_id = [
-            item.id
-            for item
-            in request_statuses
-            if item.request_status == RequestStatusEnum.declined.value
-        ][0]
-        request_completed_id = [
-            item.id
-            for item
-            in request_statuses
-            if item.request_status == RequestStatusEnum.completed.value
-        ][0]
 
         #   Handle all requests or a single request - limit to non-completed requests
         if "request_id" in data:
@@ -169,7 +148,7 @@ class AllocationManager(BaseManager):
             item
             for item
             in all_requests
-            if item.request_status_id != request_completed_id
+            if item.request_status.request_status != RequestStatusEnum.completed.value
         ]
 
         #   Get all dates being requested
@@ -254,7 +233,7 @@ class AllocationManager(BaseManager):
         fulfilled_request_ids = [item.source_request_id for item in result]
         leftover = [item for item in all_requests if item.id not in fulfilled_request_ids]
         for item in leftover:
-            RequestManager.modify_item(item.id, {"request_status_id": request_declined_id})
+            RequestManager.decline(item.id)
 
         #   Close iteration for new requests
         IterationManager.modify_item(iteration.id, {"is_allocated": True})

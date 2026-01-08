@@ -148,6 +148,7 @@ class AllocationManagerTestCase(unittest.TestCase):
         }
 
     def tearDown(self):
+        self.sess.flush()
         self.sess.rollback()
         metadata.drop_all(bind=self.engine)
 
@@ -232,15 +233,9 @@ class AllocationManagerTestCase(unittest.TestCase):
         )
 
         self.assertIsNotNone(request.id)
-        allocated_resource: list[AllocationModel] = [
-            item
-            for item
-            in AllocationManager.list_all_items()
-            if item.source_request_id == request.id
-        ]
-        self.assertEqual(len(allocated_resource), 1)
-        self.assertEqual(allocated_resource[0].allocated_resource_id, 3)
-        self.sess.refresh(request)
+        allocated_resource = request.allocation
+        self.assertIsNotNone(allocated_resource)
+        self.assertEqual(allocated_resource.allocated_resource_id, 3)
         self.assertEqual(
             request.request_status.request_status,
             RequestStatusEnum.completed.value,
@@ -255,14 +250,9 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "requested_resource_id": 3,
             },
         )
-        allocated_resource: list[AllocationModel] = [
-            item
-            for item
-            in AllocationManager.list_all_items()
-            if item.source_request_id == request.id
-        ]
-        self.assertEqual(len(allocated_resource), 1)
-        self.assertEqual(allocated_resource[0].allocated_resource_id, 4)
+        allocated_resource = request.allocation
+        self.assertIsNotNone(allocated_resource)
+        self.assertEqual(allocated_resource.allocated_resource_id, 4)
         self.sess.refresh(request)
         self.assertEqual(
             request.request_status.request_status,
@@ -278,13 +268,8 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "requested_resource_id": 3,
             },
         )
-        allocated_resource = [
-            item
-            for item
-            in AllocationManager.list_all_items()
-            if item.source_request_id == request.id
-        ]
-        self.assertEqual(len(allocated_resource), 0)
+        allocated_resource = request.allocation
+        self.assertIsNone(allocated_resource)
         self.sess.refresh(request)
         self.assertEqual(
             request.request_status.request_status,
@@ -363,3 +348,22 @@ class AllocationManagerTestCase(unittest.TestCase):
             request.request_status.request_status,
             RequestStatusEnum.declined.value,
         )
+
+    def test_delete_or_modify_request_after_allocation(self):
+        _ = AllocationManager.automatic_allocation(self.allocation_args)
+
+        #   Modify item - should delete the allocation and create a new one
+        request = self.requests[0]
+        old_allocation = request.allocation
+        request = RequestManager.modify_item(request.id, {"requested_resource_id": 2})
+        new_allocation = request.allocation
+        self.assertIsNone(AllocationManager.list_single_item(old_allocation.id))
+        self.assertIsNotNone(new_allocation)
+
+        #   Delete the item - should delete the allocation without creating a new one, reuse the
+        #   modified request
+        _ = RequestManager.delete_item(request.id)
+        request = RequestManager.list_single_item(request.id)
+        self.assertIsNone(request)
+        new_allocation = AllocationManager.list_single_item(new_allocation.id)
+        self.assertIsNone(new_allocation)
