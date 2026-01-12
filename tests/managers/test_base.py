@@ -53,12 +53,20 @@ class BaseManagerTestCase(unittest.TestCase):
             self.assertIsNone(result)
 
     def test_list_all_items(self):
-        item = self.SomeManager.create_item(self.item)
-        item = self.SomeManager.create_item(self.item)
+        item1 = self.SomeManager.create_item(self.item)
+        item2 = self.SomeManager.create_item(self.item)
+
+        #   No arguments - limit = 200, offset = 0, order_by = None
         result = self.SomeManager.list_all_items()
         self.assertTrue(isinstance(result, list))
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[-1], item)
+        self.assertEqual(result[-1], item2)
+
+        #   Arguments
+        result = self.SomeManager.list_all_items(limit=1, offset=1, order_by=["-id"])
+        self.assertTrue(isinstance(result, list))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[-1], item1)
 
     def test_delete_item(self):
         item = self.SomeManager.create_item(self.item)
