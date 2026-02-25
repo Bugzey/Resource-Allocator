@@ -10,7 +10,7 @@ from resource_allocator.managers.user import (
     AuthManager,
     UserManager,
 )
-from resource_allocator.resources.base import BaseResource
+from resource_allocator.resources.base import CRUDResource
 from resource_allocator.schemas.user import (
     RegisterUserRequestSchema,
     LoginUserRequestSchema,
@@ -22,7 +22,7 @@ from resource_allocator.schemas.user import (
 from resource_allocator.utils.schema import validate_schema
 
 
-class UserResource(BaseResource):
+class UserResource(CRUDResource):
     manager = UserManager
     request_schema = UserRequestSchema
     response_schema = UserResponseSchema

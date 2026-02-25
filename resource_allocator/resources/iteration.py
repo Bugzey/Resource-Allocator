@@ -6,10 +6,10 @@ from resource_allocator.schemas.iteration import (
     IterationRequestSchema, IterationResponseSchema,
 )
 from resource_allocator.managers.iteration import IterationManager
-from resource_allocator.resources.base import BaseResource
+from resource_allocator.resources.base import CRUDResource
 
 
-class IterationResource(BaseResource):
+class IterationResource(CRUDResource):
     manager = IterationManager
     request_schema = IterationRequestSchema
     response_schema = IterationResponseSchema

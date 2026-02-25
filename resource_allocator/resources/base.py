@@ -9,6 +9,7 @@ from flask import request, abort
 from flask_restful import Resource
 from marshmallow import Schema
 
+from resource_allocator.models import RoleEnum
 from resource_allocator.managers.user import auth, get_user_role
 from resource_allocator.managers.base import BaseManager
 
@@ -19,20 +20,33 @@ class BaseResource(ABC, Resource):
     def manager(self) -> BaseManager: ...
 
     @property
-    @abstractmethod
-    def request_schema(self) -> Schema: ...
+    def read_roles_required(self) -> list[str]:
+        """
+        List of roles needed to read data. If not overwritten, returns RoleEnum.user and .admin
+        """
+        return [RoleEnum.user, RoleEnum.admin]
+
+    @property
+    def write_roles_required(self) -> list[str]:
+        """
+        List of roles needed to write data. If not overwritten, returns .admin
+        """
+        return [RoleEnum.admin]
+
+    @property
+    def request_schema(self) -> Schema:
+        """
+        Schema to validate a request. If not overwritten, then this returns a blank schema
+        """
+        return Schema
 
     @property
     @abstractmethod
-    def response_schema(self) -> Schema: ...
-
-    @property
-    @abstractmethod
-    def read_roles_required(self) -> list[str]: ...
-
-    @property
-    @abstractmethod
-    def write_roles_required(self) -> list[str]: ...
+    def response_schema(self) -> Schema:
+        """
+        Schema to validate and dump a response. If not overwritten, returns a blank schema
+        """
+        return Schema
 
     @staticmethod
     def check_read(fun: Callable) -> Callable:
@@ -56,8 +70,10 @@ class BaseResource(ABC, Resource):
 
         return inner
 
+
+class CRUDResource(BaseResource):
     @auth.login_required
-    @check_read
+    @BaseResource.check_read
     def get(self, id: int | None = None) -> dict | list:
         """
         Get requrest to list a single object or multiple objects
@@ -79,7 +95,7 @@ class BaseResource(ABC, Resource):
         return self.response_schema().dump(result)
 
     @auth.login_required
-    @check_write
+    @BaseResource.check_write
     def post(self) -> dict:
         """
         Create an item using the provided fields in the request json
@@ -101,7 +117,7 @@ class BaseResource(ABC, Resource):
         return self.response_schema().dump(result)
 
     @auth.login_required
-    @check_write
+    @BaseResource.check_write
     def delete(self, id: int | None = None):
         """
         Issue a delete statement on a resource
@@ -119,7 +135,7 @@ class BaseResource(ABC, Resource):
         return self.response_schema().dump(result)
 
     @auth.login_required
-    @check_write
+    @BaseResource.check_write
     def put(self, id: int | None = None):
         if id is None:
             abort(400, "Put action requires an object ID")

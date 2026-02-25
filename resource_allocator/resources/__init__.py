@@ -4,7 +4,11 @@ from resource_allocator.resources.image import (
     ImagePropertiesResource,
 )
 from resource_allocator.resources.iteration import IterationResource
-from resource_allocator.resources.request import RequestResource
+from resource_allocator.resources.request import (
+    RequestResource,
+    RequestApproveResource,
+    RequestDeclineResource,
+)
 from resource_allocator.resources.resource import ResourceResource, ResourceGroupResource
 from resource_allocator.resources.resource_to_group import ResourceToGroupResource
 from resource_allocator.resources.user import (
@@ -19,6 +23,8 @@ __all__ = [
     ImagePropertiesResource,
     IterationResource,
     RequestResource,
+    RequestApproveResource,
+    RequestDeclineResource,
     ResourceResource,
     ResourceGroupResource,
     ResourceToGroupResource,

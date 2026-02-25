@@ -15,10 +15,10 @@ from resource_allocator.schemas.resource_group import (
     ResourceGroupRequestSchema,
     ResourceGroupResponseSchema,
 )
-from resource_allocator.resources.base import BaseResource
+from resource_allocator.resources.base import CRUDResource
 
 
-class ResourceResource(BaseResource):
+class ResourceResource(CRUDResource):
     manager = ResourceManager
     request_schema = ResourceRequestSchema
     response_schema = ResourceResponseSchema
@@ -26,7 +26,7 @@ class ResourceResource(BaseResource):
     write_roles_required = ["admin"]
 
 
-class ResourceGroupResource(BaseResource):
+class ResourceGroupResource(CRUDResource):
     manager = ResourceGroupManager
     request_schema = ResourceGroupRequestSchema
     response_schema = ResourceGroupResponseSchema
