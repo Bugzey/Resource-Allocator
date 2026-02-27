@@ -235,7 +235,8 @@ class AllocationManager(BaseManager):
         for item in leftover:
             RequestManager.decline(item.id)
 
-        #   Close iteration for new requests
-        IterationManager.modify_item(iteration.id, {"is_allocated": True})
+        #   Close iteration for new requests - if not allocating a single request
+        if "request_id" not in data:
+            IterationManager.modify_item(iteration.id, {"is_allocated": True})
 
         return result
