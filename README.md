@@ -56,7 +56,7 @@ DB_USER             |Username for connecting to the relational (PostgreSQL) data
 DB_PASSWORD         |Password for connecting to the relational database                                      |-
 DB_SERVER           |Database server hostname                                                                |-
 DB_PORT             |Database server port                                                                    |5432
-DB_DATABASE         |Database (catalog) name to use                                                          |-
+DB_DATABASE         |Database (catalog) name to use                                                          |postgres
 **App Settings**    |                                                                                        |
 ALLOWED_ORIGINS     |Comma-separated list of allowed request origins - for use by web-based front-ends       |-
 SECRET              |Long string to use as an application secret for encoding and decoding tokens            |-
@@ -116,31 +116,47 @@ flask --app=resource_allocator.main run
 
 Several API endpoints are exposed that accept GET, POST, PUT and DELETE HTTP requests.
 
-- Register User:
-	- `/register/`
-- Login User:
-	- `/login/`
-	- `/login_azure/`
-- Resource:
-	- `/resources/`
-	- `/resources/<int:id>`
-- Resource Group:
-	- `/resource_groups/`
-	- `/resource_groups/<int:id>`
-- Resource To Group:
-	- `/resource_to_group/`
-	- `/resource_to_group/<int:id>`
-- Iteration:
-	- `/iterations/`
-	- `/iterations/<int:id>`
-- Request:
-	- `/requests/`
-	- `/requests/<int:id>`
-- Allocation:
-	- `/allocation/`
-	- `/allocation/<int:id>`
-	- `/allocation/automatic_allocation`
+User registration and authentication:
 
+- Register User:
+	- `/register/` - POST
+
+- Login User:
+	- `/login/` - POST
+	- `/login_azure/` - POST
+
+API Resources:
+
+- Allocation:
+	- `/allocation/` - GET, POST
+	- `/allocation/<int:id>` - GET, PUT, DELETE
+	- `/allocation/automatic_allocation` - POST
+
+- Iteration:
+	- `/iterations/` - GET, POST
+	- `/iterations/<int:id>` - GET, PUT, DELETE
+
+- Request:
+	- `/requests/` - GET, POST
+	- `/requests/<int:id>` - GET, PUT, DELETE
+	- `/requests/<int:id>/approve` - POST
+	- `/requests/<int:id>/decline` - POST
+
+- Resource:
+	- `/resources/` - GET, POST
+	- `/resources/<int:id>` - GET, PUT, DELETE
+
+- Resource Group:
+	- `/resource_groups/` - GET, POST
+	- `/resource_groups/<int:id>` - GET, PUT, DELETE
+
+- Resource To Group:
+	- `/resource_to_group/` - GET, POST
+	- `/resource_to_group/<int:id>` - GET, PUT, DELETE
+
+- Users
+    - `/users/` - GET, PUT, DELETE
+    - `/users/me` - GET
 
 Example API calls are included in the top-level `utils/` folder using the `curl` command-line
 program. Endpoint scripts requiring authentication expect that an environment variable named `TOKEN`
@@ -176,42 +192,6 @@ and then delete objects from this schema.
 Outstanding features and associated tasks will be tallied in this README file until further notice.
 
 Feature brainstorm:
-
-* [X] Database objects
-	* [X] user
-	* [X] resource
-	* [X] resource group (can be recursive)
-	* [X] iteration - type of time iteration to request resources for (?)
-	* [X] request - pending user requests
-	* [X] resource to group - many-to-many mapping
-	* [X] allocation - resource X user X iteration X exact date
-
-* [X] Endpoints:
-	* [X] `/users/` - list all users (admin required)
-	* [X] `/users/me` - list the currently logged in user
-	* [X] `/resource/` - list all resources
-	* [X] `/resource_group/` - (?)
-	* [X] `/resource_to_group/` - many-to-many mapping
-	* [X] `/iteration/` - create, list
-	* [X] `/request/` - post a request for a resource
-	* [X] `/allocation/` - operations on resource allocations for an iteration; generally accessed
-      for manual overrides or additions after an automatic allocation
-    * [X] `/allocation/automatic_allocation` - start the automatic allocation, be able to pass
-      overrides
-
-* [X] allocation algorithm - initial + partial addition?
-	* [X] distribute weights according to request preferences - each user has 10 points
-	* [ ] assign an additional 2 points to history - if the person is assigned to the previous
-	  last resource they used or were assigned to
-	* [X] assign points based on request recency
-	* [X] Use simplex algorithm? Alternatively try to sort days by possible preference points
-	  (getting combinatorical here)
-
-* [X] Third-party integration
-	* [X] Optional log-in via Azure Active Directory (AD) for a specific Azure tenant
-
-* [ ] Outstanding issues
-	* [ ] Limit standard users to only see and modify their own data
 
 
 ##	Project Status:

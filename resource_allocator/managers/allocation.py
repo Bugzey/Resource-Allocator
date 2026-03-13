@@ -28,26 +28,24 @@ class AllocationManager(BaseManager):
         if not allocation.source_request_id:
             return allocation
 
-        RequestManager.approve(allocation.source_request_id)
+        RequestManager.approve(allocation.source_request_id, create_allocation=False)
         cls.sess.refresh(allocation)
         return allocation
 
     @classmethod
-    def delete_item(cls, id: int, decline_request: bool = True) -> AllocationModel:
+    def delete_item(cls, id: int) -> AllocationModel:
         """
         Set an associated request's status to Declined
 
         Args:
             id: Identifier of the allocation
-            decline_request: whether deleting the allocation should decline the request. This is
-                used when a request is being modified or deleted
 
         Returns:
             AllocationModel
         """
         allocation: AllocationModel = cls.list_single_item(id)
-        if decline_request:
-            RequestManager.decline(allocation.source_request_id)
+        if allocation.source_request_id:
+            RequestManager.decline(allocation.source_request_id, delete_allocation=False)
         return super().delete_item(id)
 
     @classmethod
@@ -205,14 +203,16 @@ class AllocationManager(BaseManager):
                     break
 
                 request, resource = cur_allocation
+                #   Set request status - handled below by cls.create_item
+                request = RequestManager.approve(request.id, create_allocation=False)
+
+                #   Add to allocations
                 allocation[date].append({
                     "allocated_resource_id": resource.id,
                     "user_id": request.user_id,
                     "points": max_points,
                     "source_request_id": request.id,
                 })
-
-                #   Set request status - handled below by cls.create_item
 
                 #   Remove resource and user requests for the same top resource group id
                 points = cls._remove_requests(request, resource, points)
@@ -235,7 +235,8 @@ class AllocationManager(BaseManager):
         for item in leftover:
             RequestManager.decline(item.id)
 
-        #   Close iteration for new requests
-        IterationManager.modify_item(iteration.id, {"is_allocated": True})
+        #   Close iteration for new requests - if not allocating a single request
+        if "request_id" not in data:
+            IterationManager.modify_item(iteration.id, {"is_allocated": True})
 
         return result

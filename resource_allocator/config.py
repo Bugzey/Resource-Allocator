@@ -17,7 +17,7 @@ class Config:
     LOCAL_LOGIN_ENABLED: bool = False
 
     #   Database
-    DB_DATABASE: str
+    DB_DATABASE: str = "postgres"
     DB_HOST: str
     DB_PORT: int = 5432
     DB_USER: str

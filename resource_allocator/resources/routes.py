@@ -1,10 +1,17 @@
-from resource_allocator.resources.allocation import AllocationResource
+from resource_allocator.resources.allocation import (
+    AllocationResource,
+    AutoAllocationResource,
+)
 from resource_allocator.resources.image import (
     ImageResource,
     ImagePropertiesResource,
 )
 from resource_allocator.resources.iteration import IterationResource
-from resource_allocator.resources.request import RequestResource
+from resource_allocator.resources.request import (
+    RequestResource,
+    RequestApproveResource,
+    RequestDeclineResource,
+)
 from resource_allocator.resources.resource import (
     ResourceGroupResource,
     ResourceResource,
@@ -25,7 +32,7 @@ routes = (
     (LoginUserAzureResource, "/login_azure/"),
     (UserResource, "/users/", "/users/<int:id>", "/users/me"),
 
-    #   Resources
+    #   CRUD resources
     (ResourceResource, "/resources/", "/resources/<int:id>"),
     (ResourceGroupResource, "/resource_groups/", "/resource_groups/<int:id>"),
     (ResourceToGroupResource, "/resource_to_group/", "/resource_to_group/<int:id>"),
@@ -33,11 +40,10 @@ routes = (
     (ImagePropertiesResource, "/image_properties/", "/image_properties/<int:id>"),
     (IterationResource, "/iterations/", "/iterations/<int:id>"),
     (RequestResource, "/requests/", "/requests/<int:id>"),
-    (
-        AllocationResource,
-        "/allocation/",
-        "/allocation/<int:id>",
-        "/allocation/automatic_allocation/",
-        "/automatic_allocation/",
-    ),
+    (AllocationResource, "/allocation/", "/allocation/<int:id>"),
+
+    #   Convenience Methods
+    (AutoAllocationResource, "/allocation/auto_allocation", "/auto_allocation"),
+    (RequestApproveResource, "/requests/<int:id>/approve"),
+    (RequestDeclineResource, "/requests/<int:id>/decline"),
 )

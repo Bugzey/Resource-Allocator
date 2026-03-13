@@ -13,10 +13,10 @@ from resource_allocator.schemas.image import (
     ImagePropertiesRequestSchema,
     ImagePropertiesResponseSchema,
 )
-from resource_allocator.resources.base import BaseResource
+from resource_allocator.resources.base import CRUDResource
 
 
-class ImageResource(BaseResource):
+class ImageResource(CRUDResource):
     manager = ImageManager
     request_schema = ImageRequestSchema
     response_schema = ImageResponseSchema
@@ -24,7 +24,7 @@ class ImageResource(BaseResource):
     write_roles_required = ["admin"]
 
 
-class ImagePropertiesResource(BaseResource):
+class ImagePropertiesResource(CRUDResource):
     manager = ImagePropertiesManager
     request_schema = ImagePropertiesRequestSchema
     response_schema = ImagePropertiesResponseSchema
