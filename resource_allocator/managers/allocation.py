@@ -3,6 +3,7 @@ Allocation manager
 """
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from resource_allocator.models import (
     AllocationModel,
@@ -19,8 +20,10 @@ from resource_allocator.managers.request import RequestManager
 class AllocationManager(BaseManager):
     model = AllocationModel
 
-    @classmethod
-    def create_item(cls, data: dict) -> AllocationModel:
+    def __init__(self, sess: Session):
+        self.request_ma
+
+    def create_item(self, data: dict) -> AllocationModel:
         """
         Create allocation and set status to completed
         """
@@ -29,11 +32,10 @@ class AllocationManager(BaseManager):
             return allocation
 
         RequestManager.approve(allocation.source_request_id, create_allocation=False)
-        cls.sess.refresh(allocation)
+        self.sess.refresh(allocation)
         return allocation
 
-    @classmethod
-    def delete_item(cls, id: int) -> AllocationModel:
+    def delete_item(self, id: int) -> AllocationModel:
         """
         Set an associated request's status to Declined
 
@@ -43,13 +45,12 @@ class AllocationManager(BaseManager):
         Returns:
             AllocationModel
         """
-        allocation: AllocationModel = cls.list_single_item(id)
+        allocation: AllocationModel = self.list_single_item(id)
         if allocation.source_request_id:
             RequestManager.decline(allocation.source_request_id, delete_allocation=False)
         return super().delete_item(id)
 
-    @classmethod
-    def _assign_points(cls, request: RequestModel, resource: ResourceModel) -> int:
+    def _assign_points(self, request: RequestModel, resource: ResourceModel) -> int:
         points = 0
 
         #   If this is the exact resource being requested, add 2 points
@@ -91,9 +92,8 @@ class AllocationManager(BaseManager):
 
         return points
 
-    @classmethod
     def _remove_requests(
-        cls,
+        self,
         request: RequestModel,
         resource: ResourceModel,
         points: dict[tuple[RequestModel, ResourceModel], int],
@@ -126,15 +126,14 @@ class AllocationManager(BaseManager):
 
         return new_points
 
-    @classmethod
-    def automatic_allocation(cls, data: dict) -> list[AllocationModel]:
+    def automatic_allocation(self, data: dict) -> list[AllocationModel]:
         """
         Generate optimal allocations of resources to users to dates based on requests sent by the
         users priod to the allocation
         """
         #   Get the iteration being worked on and associated requests
-        iteration = cls.sess.get(IterationModel, data["iteration_id"])
-        all_resources = cls.sess.query(ResourceModel).all()
+        iteration = self.sess.get(IterationModel, data["iteration_id"])
+        all_resources = self.sess.query(ResourceModel).all()
 
         #   Handle all requests or a single request - limit to non-completed requests
         if "request_id" in data:
@@ -156,7 +155,7 @@ class AllocationManager(BaseManager):
         allocation = dict()
 
         #   Get a list of resources that are already allocated
-        already_allocated_rows = list(cls.sess.execute(
+        already_allocated_rows = list(self.sess.execute(
             select(
                 AllocationModel.date,
                 AllocationModel.allocated_resource_id,
@@ -189,7 +188,7 @@ class AllocationManager(BaseManager):
                 #   Assign user points
                 for request in requests:
                     key = (request, resource)
-                    points[key] = cls._assign_points(request, resource)
+                    points[key] = self._assign_points(request, resource)
 
             allocation[date] = []
 
@@ -203,7 +202,7 @@ class AllocationManager(BaseManager):
                     break
 
                 request, resource = cur_allocation
-                #   Set request status - handled below by cls.create_item
+                #   Set request status - handled below by self.create_item
                 request = RequestManager.approve(request.id, create_allocation=False)
 
                 #   Add to allocations
@@ -215,13 +214,13 @@ class AllocationManager(BaseManager):
                 })
 
                 #   Remove resource and user requests for the same top resource group id
-                points = cls._remove_requests(request, resource, points)
+                points = self._remove_requests(request, resource, points)
 
         #   Add the allocations using the post interface
         result = []
         for date, allocation_list in allocation.items():
             result.extend([
-                cls.create_item({
+                self.create_item({
                     **item,
                     "date": date,
                     "iteration_id":

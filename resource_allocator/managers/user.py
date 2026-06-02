@@ -31,13 +31,11 @@ logger = logging.getLogger(__name__)
 class UserManager(BaseManager):
     model = UserModel
 
-    @classmethod
     @property
-    def config(cls) -> Config:
+    def config(self) -> Config:
         return Config.get_instance()
 
-    @classmethod
-    def modify_item(cls, id: int, data: dict) -> UserModel:
+    def modify_item(self, id: int, data: dict) -> UserModel:
         if "password" in data:
             data["password_hash"] = generate_password_hash(str(data["password"]))
             del data["password"]
@@ -48,12 +46,10 @@ class UserManager(BaseManager):
 class AuthManager(BaseManager):
     model = UserModel
 
-    @classmethod
     @property
-    def config(cls) -> Config:
+    def config(self) -> Config:
         return Config.get_instance()
 
-    @classmethod
     @check_configured(
         check_fun=lambda: Config.get_instance().LOCAL_LOGIN_ENABLED,
         error_code=400,
@@ -78,7 +74,6 @@ class AuthManager(BaseManager):
 
         return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
 
-    @classmethod
     def login(cls, data: dict) -> dict[str, str]:
         user = cls.sess.query(UserModel).where(UserModel.email == data["email"]).first()
         if not user:
@@ -89,7 +84,6 @@ class AuthManager(BaseManager):
 
         return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
 
-    @classmethod
     @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
     def login_azure_init(cls, data: dict | None = None) -> dict[str, str]:
         """
@@ -119,7 +113,6 @@ class AuthManager(BaseManager):
             )
         }
 
-    @classmethod
     @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
     def _register_azure(cls, user_response: dict[str, Any]) -> dict[str, str]:
         """
@@ -158,7 +151,6 @@ class AuthManager(BaseManager):
         cls.sess.flush()
         return user
 
-    @classmethod
     @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
     def login_azure_finish(cls, data: dict) -> dict[str, str]:
         """

@@ -4,34 +4,36 @@ Base manager object to provide standardized operations
 
 from abc import ABC, abstractmethod
 
+from flask.views import MethodView
 import sqlalchemy as db
+from sqlalchemy.orm import Session
 
-from resource_allocator.db import get_session
 
-
-class BaseManager(ABC):
+class BaseManager(MethodView, ABC):
     """
     Base manager class for standard CRUD-like operations on database tables. Child classes should
     define a class-level property "model" to point to the sqlalchemy ORM table to use
 
-    Properties:
+    An SQLAlchemy session should be given on initiation when the Flask object is created
+
+    Class variables:
         model: sqlalchemy ORM table
+
+    Properties:
+        sess: SQLAlchemy Session
     """
-    @classmethod
-    @property
-    def sess(cls) -> db.orm.Session:
-        return get_session()
-
-    @property
-    @classmethod
-    @abstractmethod
-    def model(cls) -> db.Table:
-        pass
-
+    sess: Session
     nested_managers: dict[str, "BaseManager"] = dict()
 
-    @classmethod
-    def list_single_item(cls, id: int) -> db.Table:
+    def __init__(self, sess: Session):
+        self.sess = sess
+
+    @property
+    @abstractmethod
+    def model(self) -> db.Table:
+        pass
+
+    def list_single_item(self, id: int) -> db.Table:
         """
         List properties of a single item.
 
@@ -41,42 +43,38 @@ class BaseManager(ABC):
         Returns:
             db.Table
         """
-        item = cls.sess.get(cls.model, id)  # can be None
+        item = self.sess.get(self.model, id)  # can be None
         return item
 
-    @classmethod
-    def list_all_items(cls) -> list[db.Table]:
-        items = cls.sess.query(cls.model).all()
+    def list_all_items(self) -> list[db.Table]:
+        items = self.sess.query(self.model).all()
         return items
 
-    @classmethod
-    def create_item(cls, data: dict) -> db.Table:
-        for key in set(cls.nested_managers.keys()) & set(data.keys()):
-            data[key] = cls.nested_managers[key].create_item(data[key])
+    def create_item(self, data: dict) -> db.Table:
+        for key in set(self.nested_managers.keys()) & set(data.keys()):
+            data[key] = self.nested_managers[key](self.sess).create_item(data[key])
 
-        item = cls.model(**data)
-        cls.sess.add(item)
-        cls.sess.flush()
+        item = self.model(**data)
+        self.sess.add(item)
+        self.sess.flush()
         return item
 
-    @classmethod
-    def delete_item(cls, id: int) -> db.Table:
-        item = cls.sess.get(cls.model, id)  # can be None
+    def delete_item(self, id: int) -> db.Table:
+        item = self.sess.get(self.model, id)  # can be None
         if not item:
             return item
 
-        cls.sess.delete(item)
-        cls.sess.flush()
+        self.sess.delete(item)
+        self.sess.flush()
         return item
 
-    @classmethod
-    def modify_item(cls, id: int, data: dict) -> db.Table:
-        item = cls.sess.get(cls.model, id)  # can be None
+    def modify_item(self, id: int, data: dict) -> db.Table:
+        item = self.sess.get(self.model, id)  # can be None
         if not item:
             return item
 
-        for key in set(cls.nested_managers.keys()) & set(data.keys()):
-            nested_manager = cls.nested_managers[key]
+        for key in set(self.nested_managers.keys()) & set(data.keys()):
+            nested_manager = self.nested_managers[key](self.sess)
             nested_item = nested_manager.list_single_item(item.__dict__[key].id)
             if isinstance(nested_item, nested_manager.model):
                 data[key] = nested_manager.modify_item(nested_item.id, data[key])
@@ -87,13 +85,13 @@ class BaseManager(ABC):
             key: value
             for key, value
             in data.items()
-            if key not in cls.nested_managers.keys()
+            if key not in self.nested_managers.keys()
         }
-        cls.sess.execute(
-            db.update(cls.model)
-            .where(cls.model.id == id)
+        self.sess.execute(
+            db.update(self.model)
+            .where(self.model.id == id)
             .values(result)
         )
 
-        cls.sess.flush()
+        self.sess.flush()
         return item

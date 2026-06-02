@@ -5,8 +5,6 @@ Unit tests for managers.allocation
 import datetime as dt
 import unittest
 
-from resource_allocator.config import Config
-from resource_allocator.db import get_session
 from resource_allocator.managers.allocation import AllocationManager
 from resource_allocator.managers.iteration import IterationManager
 from resource_allocator.managers.request import RequestManager
@@ -14,22 +12,15 @@ from resource_allocator.managers.resource import ResourceManager, ResourceGroupM
 from resource_allocator.managers.resource_to_group import ResourceToGroupManager
 from resource_allocator.managers.user import AuthManager, UserManager
 from resource_allocator.models import (
-    metadata, populate_enums, AllocationModel, IterationModel, RequestStatusEnum, RequestModel,
+    AllocationModel, IterationModel, RequestStatusEnum, RequestModel,
 )
-from resource_allocator.utils.db import change_schema
 
-metadata = change_schema(metadata, schema="resource_allocator_test")
+from tests.managers.test_base import TestBase
 
 
-class AllocationManagerTestCase(unittest.TestCase):
+class AllocationManagerTestCase(TestBase, unittest.TestCase):
     def setUp(self):
-        self.config = Config.from_environment()
-        self.sess = get_session()
-        self.engine = self.sess.bind
-
-        metadata.drop_all(self.engine)  # in case of errors during setUp
-        metadata.create_all(self.engine)
-        populate_enums(self.sess)
+        super().setUp()
         self.users_data = [
             {
                 "email": "user1@example.com",
@@ -50,8 +41,11 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "last_name": "bla",
             },
         ]
-        _ = [AuthManager.register(user) for user in self.users_data]
-        self.users = UserManager.list_all_items()
+        auth_manager = AuthManager(self.sess)
+        user_manager = UserManager(self.sess)
+
+        _ = [auth_manager.register(user) for user in self.users_data]
+        self.users = user_manager.list_all_items()
 
         self.resource_groups_data = [
             {
@@ -74,7 +68,7 @@ class AllocationManagerTestCase(unittest.TestCase):
             },
         ]
         self.resource_groups = [
-            ResourceGroupManager.create_item(item)
+            ResourceGroupManager(self.sess).create_item(item)
             for item
             in self.resource_groups_data
         ]
@@ -97,7 +91,11 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "top_resource_group_id": 4,
             },
         ]
-        self.resources = [ResourceManager.create_item(item) for item in self.resources_data]
+        self.resources = [
+            ResourceManager(self.sess).create_item(item)
+            for item
+            in self.resources_data
+        ]
 
         self.resource_to_group = [
             {
@@ -109,7 +107,7 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "resource_group_id": 3,
             },
         ]
-        [ResourceToGroupManager.create_item(item) for item in self.resource_to_group]
+        [ResourceToGroupManager(self.sess).create_item(item) for item in self.resource_to_group]
 
         self.iteration = IterationManager.create_item({
             "start_date": dt.date(2020, 1, 1), "end_date": dt.date(2020, 1, 7),
@@ -141,19 +139,15 @@ class AllocationManagerTestCase(unittest.TestCase):
                 "requested_resource_group_id": 4,
             },  # User 1 requests a resource in a different top resource group id
         ]
-        self.requests = [RequestManager.create_item(item) for item in self.requests_data]
+        self.requests = [RequestManager(self.sess).create_item(item) for item in self.requests_data]
 
         self.allocation_args = {
             "iteration_id": 1,
         }
-
-    def tearDown(self):
-        self.sess.flush()
-        self.sess.rollback()
-        metadata.drop_all(bind=self.engine)
+        self.allocation_manager = AllocationManager(self.sess)
 
     def test_create_item(self):
-        result = AllocationManager.create_item(data=dict(
+        result = self.allocation_manager.create_item(data=dict(
             iteration_id=self.iteration.id,
             date=dt.date(2020, 1, 1),
             user_id=self.users[0].id,
@@ -167,7 +161,7 @@ class AllocationManagerTestCase(unittest.TestCase):
         self.assertEqual(request.request_status.request_status, RequestStatusEnum.completed.value)
 
     def test_delete_item(self):
-        result = AllocationManager.create_item(data=dict(
+        result = self.allocation_manager.create_item(data=dict(
             iteration_id=self.iteration.id,
             date=dt.date(2020, 1, 1),
             user_id=self.users[0].id,
@@ -177,14 +171,14 @@ class AllocationManagerTestCase(unittest.TestCase):
         self.assertIsInstance(result, AllocationModel)
 
         #   Delete the allocation
-        AllocationManager.delete_item(result.id)
+        self.allocation_manager.delete_item(result.id)
 
         #   Check that the source request is completed
         request: RequestModel = self.requests[0]
         self.assertEqual(request.request_status.request_status, RequestStatusEnum.declined.value)
 
     def test_automatic_allocation(self):
-        result = AllocationManager.automatic_allocation(self.allocation_args)
+        result = self.allocation_manager.automatic_allocation(self.allocation_args)
         self.assertTrue(isinstance(result, list))
 
         #   Result is written to the database
@@ -214,13 +208,13 @@ class AllocationManagerTestCase(unittest.TestCase):
         )
 
         #   Run again - old requests should not get new allocations
-        new = AllocationManager.automatic_allocation(self.allocation_args)
+        new = self.allocation_manager.automatic_allocation(self.allocation_args)
         self.assertTrue(isinstance(new, list))
         self.assertEqual(len(new), 0)
-        self.assertEqual(len(AllocationManager.list_all_items()), len(result))
+        self.assertEqual(len(self.allocation_manager.list_all_items()), len(result))
 
     def test_request_resource_after_allocation(self):
-        _ = AllocationManager.automatic_allocation(self.allocation_args)
+        _ = self.allocation_manager.automatic_allocation(self.allocation_args)
 
         #   New request to a free resource
         request = RequestManager.create_item(
@@ -277,7 +271,7 @@ class AllocationManagerTestCase(unittest.TestCase):
         )
 
     def test_request_group_after_allocation(self):
-        _ = AllocationManager.automatic_allocation(self.allocation_args)
+        _ = self.allocation_manager.automatic_allocation(self.allocation_args)
 
         #   New request to a free resource
         request = RequestManager.create_item(
@@ -293,7 +287,7 @@ class AllocationManagerTestCase(unittest.TestCase):
         allocated_resource: list[AllocationModel] = [
             item
             for item
-            in AllocationManager.list_all_items()
+            in self.allocation_manager.list_all_items()
             if item.source_request_id == request.id
         ]
         self.assertEqual(len(allocated_resource), 1)
@@ -316,7 +310,7 @@ class AllocationManagerTestCase(unittest.TestCase):
         allocated_resource: list[AllocationModel] = [
             item
             for item
-            in AllocationManager.list_all_items()
+            in self.allocation_manager.list_all_items()
             if item.source_request_id == request.id
         ]
         self.assertEqual(len(allocated_resource), 1)
@@ -339,7 +333,7 @@ class AllocationManagerTestCase(unittest.TestCase):
         allocated_resource = [
             item
             for item
-            in AllocationManager.list_all_items()
+            in self.allocation_manager.list_all_items()
             if item.source_request_id == request.id
         ]
         self.assertEqual(len(allocated_resource), 0)
@@ -350,14 +344,14 @@ class AllocationManagerTestCase(unittest.TestCase):
         )
 
     def test_delete_or_modify_request_after_allocation(self):
-        _ = AllocationManager.automatic_allocation(self.allocation_args)
+        _ = self.allocation_manager.automatic_allocation(self.allocation_args)
 
         #   Modify item - should delete the allocation and create a new one
         request = self.requests[0]
         old_allocation = request.allocation
         request = RequestManager.modify_item(request.id, {"requested_resource_id": 2})
         new_allocation = request.allocation
-        self.assertIsNone(AllocationManager.list_single_item(old_allocation.id))
+        self.assertIsNone(self.allocation_manager.list_single_item(old_allocation.id))
         self.assertIsNotNone(new_allocation)
 
         #   Delete the item - should delete the allocation without creating a new one, reuse the
@@ -365,5 +359,5 @@ class AllocationManagerTestCase(unittest.TestCase):
         _ = RequestManager.delete_item(request.id)
         request = RequestManager.list_single_item(request.id)
         self.assertIsNone(request)
-        new_allocation = AllocationManager.list_single_item(new_allocation.id)
+        new_allocation = self.allocation_manager.list_single_item(new_allocation.id)
         self.assertIsNone(new_allocation)

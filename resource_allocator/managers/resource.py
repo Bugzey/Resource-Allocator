@@ -30,15 +30,13 @@ class ResourceGroupManager(BaseManager):
         "image_properties": ImagePropertiesManager,
     }
 
-    @classmethod
-    def create_item(cls, data: dict) -> ResourceGroupModel:
+    def create_item(self, data: dict) -> ResourceGroupModel:
         result = super().create_item(data)
         if not data["is_top_level"]:
             return result
 
-        sess = cls.sess
         result.top_resource_group_id = result.id
-        sess.flush()
+        self.sess.flush()
         return result
 
 

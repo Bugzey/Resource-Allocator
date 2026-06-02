@@ -8,31 +8,21 @@ import unittest
 
 from PIL import Image
 
-from resource_allocator.config import Config
-from resource_allocator.db import get_session
 from resource_allocator.models import (
-    metadata,
-    populate_enums,
     ResourceGroupModel,
     ImageModel,
 )
-from resource_allocator.utils.db import change_schema
 from resource_allocator.managers.resource import ResourceGroupManager
 
-metadata = change_schema(metadata, "resource_allocator_test")
+from tests.managers.test_base import TestBase
 
 
-class ResourceGroupManagerTestCase(unittest.TestCase):
+class ResourceGroupManagerTestCase(TestBase, unittest.TestCase):
     """
     Note: this test only checks for nested image integration
     """
     def setUp(self):
-        self.config = Config.from_environment()
-        self.sess = get_session()
-        self.engine = self.sess.bind
-        metadata.create_all(self.engine)
-        populate_enums(self.sess)
-
+        super().setUp()
         self.image = self._make_image()
         self.data = {
             "name": "some group",
@@ -41,10 +31,6 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
                 "image": self.image,
             },
         }
-
-    def tearDown(self):
-        self.sess.rollback()
-        metadata.drop_all(self.engine)
 
     @staticmethod
     def _make_image(**args) -> bytes:
@@ -59,18 +45,18 @@ class ResourceGroupManagerTestCase(unittest.TestCase):
             return base64.b64encode(image_bytes_io.read()).decode()
 
     def test_create_resource_group_with_image(self):
-        result = ResourceGroupManager.create_item(self.data)
+        result = ResourceGroupManager(self.sess).create_item(self.data)
         self.assertTrue(isinstance(result, ResourceGroupModel))
         self.assertTrue(isinstance(result.image, ImageModel))
 
     def test_modify_resource_group_with_image(self):
         data = self.data.copy()  # mutability shenanigans
-        original_result = ResourceGroupManager.create_item(data)
+        original_result = ResourceGroupManager(self.sess).create_item(data)
         original_image = original_result.image.image_data
 
         data = self.data.copy()  # mutability shenanigans
         data["image"] = {"image": self._make_image(color=255)}
-        result = ResourceGroupManager.modify_item(original_result.id, data)
+        result = ResourceGroupManager(self.sess).modify_item(original_result.id, data)
         self.assertTrue(isinstance(result, ResourceGroupModel))
         self.assertTrue(isinstance(result.image, ImageModel))
 
