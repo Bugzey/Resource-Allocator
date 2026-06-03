@@ -31,10 +31,6 @@ logger = logging.getLogger(__name__)
 class UserManager(BaseManager):
     model = UserModel
 
-    @property
-    def config(self) -> Config:
-        return Config.get_instance()
-
     def modify_item(self, id: int, data: dict) -> UserModel:
         if "password" in data:
             data["password_hash"] = generate_password_hash(str(data["password"]))
@@ -55,42 +51,42 @@ class AuthManager(BaseManager):
         error_code=400,
         error_message="Local registrations are not enabled on this server",
     )
-    def register(cls, data: dict) -> dict[str, str]:
+    def register(self, data: dict) -> dict[str, str]:
         data = data.copy()
         data["password_hash"] = generate_password_hash(str(data["password"]))
         del data["password"]
 
-        if cls.sess.query(UserModel).first():
+        if self.sess.query(UserModel).first():
             role = RoleEnum.user.name
         else:
             role = RoleEnum.admin.name
 
-        role_id = cls.sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
+        role_id = self.sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
         data["role_id"] = role_id
 
         user = UserModel(**data)
-        cls.sess.add(user)
-        cls.sess.flush()
+        self.sess.add(user)
+        self.sess.flush()
 
-        return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
+        return {"id": user.id, "token": generate_token(user.id, secret=self.config.SECRET)}
 
-    def login(cls, data: dict) -> dict[str, str]:
-        user = cls.sess.query(UserModel).where(UserModel.email == data["email"]).first()
+    def login(self, data: dict) -> dict[str, str]:
+        user = self.sess.query(UserModel).where(UserModel.email == data["email"]).first()
         if not user:
             return "No such user: {}".format(data["email"]), 404
 
         if not check_password_hash(user.password_hash, str(data["password"])):
             return "Invalid password", 401
 
-        return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
+        return {"id": user.id, "token": generate_token(user.id, secret=self.config.SECRET)}
 
     @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
-    def login_azure_init(cls, data: dict | None = None) -> dict[str, str]:
+    def login_azure_init(self, data: dict | None = None) -> dict[str, str]:
         """
         Initiate or complete an Azure Active Directory login
         """
         data = data or {}
-        config = cls.config
+        config = self.config
         custom_redirect = data.get("redirect_uri")
         if (
             custom_redirect
@@ -114,7 +110,7 @@ class AuthManager(BaseManager):
         }
 
     @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
-    def _register_azure(cls, user_response: dict[str, Any]) -> dict[str, str]:
+    def _register_azure(self, user_response: dict[str, Any]) -> dict[str, str]:
         """
         Register a new Azure Active Directory user using the user response from Azure. This method
         should remain private
@@ -132,12 +128,12 @@ class AuthManager(BaseManager):
             f"register automatically"
         )
 
-        if cls.sess.query(UserModel).first():
+        if self.sess.query(UserModel).first():
             role = RoleEnum.user.name
         else:
             role = RoleEnum.admin.name
 
-        role_id = cls.sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
+        role_id = self.sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
 
         user = UserModel(
             email=user_response["mail"].lower(),  # can have capitals in Azure AD
@@ -147,12 +143,12 @@ class AuthManager(BaseManager):
             role_id=role_id,
             is_external=True,
         )
-        cls.sess.add(user)
-        cls.sess.flush()
+        self.sess.add(user)
+        self.sess.flush()
         return user
 
     @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
-    def login_azure_finish(cls, data: dict) -> dict[str, str]:
+    def login_azure_finish(self, data: dict) -> dict[str, str]:
         """
         Finish the Azure Active Directory login by consuming an authorization code in exchange for
         an access token. We do not store any tokens.
@@ -160,7 +156,7 @@ class AuthManager(BaseManager):
         Args:
             data: dict: API request json. Must contain the "code" key and value
         """
-        config = cls.config
+        config = self.config
         auth_request = build_azure_ad_token_request(
             code=data["code"],
             tenant_id=config.TENANT_ID,
@@ -180,13 +176,13 @@ class AuthManager(BaseManager):
             azure_token = auth_response_json["access_token"]
             user_response = get_azure_user_info(azure_token)
 
-        user = cls.sess \
+        user = self.sess \
             .query(UserModel) \
             .where(UserModel.email == user_response["mail"].casefold()) \
             .first()
 
         if not user:
-            user = cls._register_azure(user_response)
+            user = self._register_azure(user_response)
 
         if user.email != data["email"].lower():
             return "Requested email is not the same as Azure AD response email.", 400
@@ -194,7 +190,7 @@ class AuthManager(BaseManager):
         if not user.is_external:
             return "User is not external; use password login", 400
 
-        return {"id": user.id, "token": generate_token(user.id, secret=cls.config.SECRET)}
+        return {"id": user.id, "token": generate_token(user.id, secret=self.config.SECRET)}
 
 
 auth = HTTPTokenAuth(scheme="Bearer")
