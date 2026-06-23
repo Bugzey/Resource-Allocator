@@ -188,19 +188,21 @@ class UserManagerTestCase(TestBase, unittest.TestCase):
             },
         ]
         self.auth_manager = AuthManager(self.sess)
-        [self.auth_manager.register(user) for user in self.users]
+        self.user_manager = UserManager(self.sess)
 
-    def test_get(self):
-        result = UserManager.list_single_item(1)
+    def test_get(self, *args, **kwargs):
+        [self.auth_manager.register(user) for user in self.users]
+        result = self.user_manager.list_single_item(1)
         self.assertIsInstance(result, UserModel)
         self.assertEqual(result.email, self.users[0]["email"])
         self.assertEqual(result.role.role, RoleEnum.admin.value)
 
-    def test_modify(self):
+    def test_modify(self, *args, **kwargs):
+        [self.auth_manager.register(user) for user in self.users]
         #   Normal items
-        old_user = UserManager.list_single_item(2)
+        old_user = self.user_manager.list_single_item(2)
         old_pass = old_user.password_hash
-        result = UserManager.modify_item(
+        result = self.user_manager.modify_item(
             2,
             {
                 "first_name": "alb",

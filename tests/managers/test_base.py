@@ -27,6 +27,7 @@ class TestBase:
     def tearDown(self):
         self.sess.rollback()
         metadata.drop_all(self.sess.bind)
+        self.sess.close()
 
 
 class BaseManagerTestCase(TestBase, unittest.TestCase):

@@ -3,8 +3,9 @@ from dataclasses import dataclass, field
 import os
 from pathlib import Path
 
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine, url
 from sqlalchemy.orm import Session
-from sqlalchemy.engine import url
 
 
 @dataclass(kw_only=True)
@@ -29,7 +30,7 @@ class Config:
     SERVER_NAME: str | None
     ALLOWED_ORIGINS: list[str] = field(default_factory=list)
 
-    _sess: Session = field(init=False, default=None)
+    _engine: Engine = field(init=False, repr=False)
     _default_paths = (
         Path("config"),
         Path().home() / ".resource_allocator",
@@ -46,6 +47,14 @@ class Config:
             return cls._instance[0]
 
         raise RuntimeError("No Config instance initialized")
+
+    @classmethod
+    def get_session(cls) -> Session:
+        """
+        Create a new session from the single configured instance
+        """
+        instance = cls.get_instance()
+        return Session(instance._engine)
 
     @classmethod
     def reset_instance(cls) -> None:
@@ -92,6 +101,7 @@ class Config:
             database=self.DB_DATABASE,
         )
         self.__class__._instance.append(self)
+        self._engine = create_engine(self.URL)
 
     @property
     def AZURE_CONFIGURED(self) -> bool:
