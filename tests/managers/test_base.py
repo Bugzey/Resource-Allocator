@@ -31,15 +31,15 @@ class TestBase:
 
 
 class BaseManagerTestCase(TestBase, unittest.TestCase):
+    class SomeManager(BaseManager):
+        model = SomeTable
+
     def setUp(self):
         super().setUp()
         self.item = {
             "name": "some_item",
         }
         self.manager = self.SomeManager(self.sess)
-
-    class SomeManager(BaseManager):
-        model = SomeTable
 
     def test_create_item(self):
         item = self.manager.create_item(self.item)

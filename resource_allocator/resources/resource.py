@@ -2,7 +2,6 @@
 API resources for resource objects
 """
 
-from resource_allocator.managers.user import auth
 from resource_allocator.managers.resource import (
     ResourceManager,
     ResourceGroupManager,
@@ -15,7 +14,7 @@ from resource_allocator.schemas.resource_group import (
     ResourceGroupRequestSchema,
     ResourceGroupResponseSchema,
 )
-from resource_allocator.resources.base import CRUDResource
+from resource_allocator.resources.base import CRUDResource, auth
 
 
 class ResourceResource(CRUDResource):

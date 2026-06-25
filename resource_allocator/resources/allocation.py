@@ -9,8 +9,7 @@ from resource_allocator.schemas.allocation import (
     AllocationAutomaticAllocationSchema,
 )
 from resource_allocator.managers.allocation import AllocationManager
-from resource_allocator.resources.base import BaseResource, CRUDResource
-from resource_allocator.managers.user import auth, role_required
+from resource_allocator.resources.base import BaseResource, CRUDResource, auth, role_required
 
 
 class AllocationResource(CRUDResource):

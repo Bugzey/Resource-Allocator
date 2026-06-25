@@ -3,12 +3,15 @@ Base manager object to provide standardized operations
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import ClassVar
 
 from flask.views import MethodView
 import sqlalchemy as db
 from sqlalchemy.orm import Session
 
 
+@dataclass
 class BaseManager(MethodView, ABC):
     """
     Base manager class for standard CRUD-like operations on database tables. Child classes should
@@ -19,14 +22,16 @@ class BaseManager(MethodView, ABC):
     Class variables:
         model: sqlalchemy ORM table
 
-    Properties:
-        sess: SQLAlchemy Session
+    Init variables:
+        sess: SQLAlchemy session for data access
     """
     sess: Session
-    nested_managers: dict[str, "BaseManager"] = dict()
 
-    def __init__(self, sess: Session):
-        self.sess = sess
+    nested_managers: ClassVar[dict[str, "BaseManager"] | None] = None
+
+    def __post_init__(self):
+        if self.nested_managers is None:
+            self.nested_managers = {}
 
     @property
     @abstractmethod

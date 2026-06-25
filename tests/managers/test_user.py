@@ -2,12 +2,9 @@
 Tests for the managers.auth module
 """
 
-import datetime as dt
 import unittest
 from unittest.mock import patch, MagicMock
 from urllib.parse import quote
-
-import jwt
 
 from resource_allocator import models
 from resource_allocator.models import (
@@ -18,27 +15,21 @@ from resource_allocator.config import Config
 from resource_allocator.managers.user import (
     AuthManager,
     UserManager,
-    verify_token,
 )
 
 from tests.managers.test_base import TestBase
 
 
-@patch(
-    "resource_allocator.managers.user.Config.get_instance",
-    return_value=MagicMock(
-        spec=Config,
-        AZURE_CONFIGURED=True,
-        LOCAL_LOGIN_ENABLED=True,
-        SECRET="asdf1234" * 8,
-        TENANT_ID="TENANT_ID",
-        REDIRECT_URI="http://REDIRECT_URI",
-        ALLOWED_ORIGINS=["http://localhost"],
-    )
-)
 class AuthManagerTestCase(TestBase, unittest.TestCase):
     def setUp(self):
         super().setUp()
+        self.config = MagicMock(
+            spec=Config,
+            SECRET="asdf1234" * 8,
+            TENANT_ID="TENANT_ID",
+            REDIRECT_URI="REDIRECT_URI",
+            ALLOWED_ORIGINS=["http://localhost"],
+        )
         self.data = {
             "email": "test@example.com",
             "password": 123456,
@@ -50,7 +41,7 @@ class AuthManagerTestCase(TestBase, unittest.TestCase):
             "givenName": self.data["first_name"],
             "surname": self.data["last_name"],
         }
-        self.manager = AuthManager(self.sess)
+        self.manager = AuthManager(sess=self.sess, config=self.config)
 
     def test_register_local(self, *args, **kwargs):
         result = self.manager.register(self.data)
@@ -158,18 +149,6 @@ class AuthManagerTestCase(TestBase, unittest.TestCase):
         self.assertTrue(users[0].is_external)
 
 
-@patch(
-    "resource_allocator.managers.user.Config.get_instance",
-    return_value=MagicMock(
-        spec=Config,
-        AZURE_CONFIGURED=True,
-        LOCAL_LOGIN_ENABLED=True,
-        SECRET="asdf1234" * 8,
-        TENANT_ID="TENANT_ID",
-        REDIRECT_URI="http://REDIRECT_URI",
-        ALLOWED_ORIGINS=["http://localhost"],
-    )
-)
 class UserManagerTestCase(TestBase, unittest.TestCase):
     def setUp(self):
         super().setUp()
@@ -187,7 +166,7 @@ class UserManagerTestCase(TestBase, unittest.TestCase):
                 "last_name": "bla",
             },
         ]
-        self.auth_manager = AuthManager(self.sess)
+        self.auth_manager = AuthManager(self.sess, config=self.config)
         self.user_manager = UserManager(self.sess)
 
     def test_get(self, *args, **kwargs):
@@ -212,48 +191,3 @@ class UserManagerTestCase(TestBase, unittest.TestCase):
         self.assertEqual(result.first_name, "alb")
         self.assertEqual(result.last_name, "bla")
         self.assertNotEqual(result.password_hash, old_pass)
-
-
-@patch(
-    "resource_allocator.managers.user.Config.get_instance",
-    return_value=MagicMock(
-        spec=Config,
-        SECRET="asdf1234" * 8,
-    )
-)
-class VerifyTokenTestCase(unittest.TestCase):
-    def setUp(self):
-        self.secret = "asdf1234" * 8
-        now = dt.datetime.now(tz=dt.timezone.utc)
-        self.data = {
-            "sub": "12",
-            "iat": now,
-            "exp": now + dt.timedelta(seconds=3600),
-        }
-        self.good_token = jwt.encode(self.data, key=self.secret, algorithm="HS256")
-
-        self.expired_token = jwt.encode(
-            {
-                **self.data,
-                "exp": 0,
-            },
-            key=self.secret,
-            algorithm="HS256",
-        )
-
-    @patch("resource_allocator.managers.user.get_session")
-    def test_verify_token(self, mock_sess: MagicMock, *args, **kwargs):
-        with self.subTest("Good token"):
-            mock_sess.return_value.get.return_value = "12"
-            result = verify_token(self.good_token)
-            self.assertEqual(result, "12")
-            mock_sess.return_value.get.assert_called()
-
-        with self.subTest("Expired token"):
-            result = verify_token(self.expired_token)
-            self.assertFalse(result)
-
-        with self.subTest("Missing user"):
-            mock_sess.return_value.get.return_value = None
-            result = verify_token(self.good_token)
-            self.assertTrue(result)

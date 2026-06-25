@@ -2,16 +2,85 @@
 Base resource for defining repeatable CRUD-like operations quicker
 """
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
 
 from flask import request, abort
+from flask_httpauth import HTTPTokenAuth
 from flask_restful import Resource
 from marshmallow import Schema
 
-from resource_allocator.models import RoleEnum
-from resource_allocator.managers.user import auth, get_user_role
+from resource_allocator.db import get_session
+from resource_allocator.config import Config
+from resource_allocator.models import UserModel, RoleModel, RoleEnum
 from resource_allocator.managers.base import BaseManager
+from resource_allocator.utils.auth import parse_token
+
+
+auth = HTTPTokenAuth(scheme="Bearer")
+
+
+@auth.verify_token
+def verify_token(token):
+    """
+    Verify the JWT token and return whatever flask_httpauth requires
+
+    Success: user object
+    No user: True
+    Failed auth: False
+    """
+    config = Config.get_instance()
+    try:
+        parsed_token = parse_token(token=token, secret=config.SECRET)
+    except Exception:
+        return False
+
+    user = get_session().get(UserModel, int(parsed_token["sub"]))
+    if not user:
+        return True
+
+    return user
+
+
+def get_user_role() -> str:
+    """
+    Function to get the current user's roles
+
+    Args:
+        None
+
+    Returns:
+        str: name of the assigned user role
+    """
+    role = get_session().get(RoleModel, auth.current_user().role_id).role
+    return role
+
+
+def role_required(role_name: str) -> Callable:
+    """
+    Decorator to check if a user has the required role role_name for an action
+
+    Args:
+        role_name: str: name of the role to check for
+
+    Returns:
+        Callable: wrapper function
+    """
+    def wrapper(fun):
+        @wraps(fun)
+        def wrapped(*args, **kwargs):
+            user = auth.current_user()
+            required_role_id = get_session() \
+                .query(RoleModel.id) \
+                .where(RoleModel.role == role_name) \
+                .scalar()
+
+            if not user.role_id == required_role_id:
+                return "Forbidden", 403
+
+            return fun(*args, **kwargs)
+        return wrapped
+    return wrapper
 
 
 class BaseResource(ABC, Resource):

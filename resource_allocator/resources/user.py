@@ -6,11 +6,10 @@ from flask import request, abort
 from flask_restful import Resource
 
 from resource_allocator.managers.user import (
-    auth,
     AuthManager,
     UserManager,
 )
-from resource_allocator.resources.base import CRUDResource
+from resource_allocator.resources.base import CRUDResource, auth
 from resource_allocator.schemas.user import (
     RegisterUserRequestSchema,
     LoginUserRequestSchema,

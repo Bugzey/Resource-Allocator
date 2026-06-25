@@ -4,8 +4,10 @@ Unit tests for managers.allocation
 
 import datetime as dt
 import unittest
+from unittest.mock import patch, MagicMock
 
 from resource_allocator.managers.allocation import AllocationManager
+from resource_allocator.config import Config
 from resource_allocator.managers.iteration import IterationManager
 from resource_allocator.managers.request import RequestManager
 from resource_allocator.managers.resource import ResourceManager, ResourceGroupManager
@@ -18,6 +20,18 @@ from resource_allocator.models import (
 from tests.managers.test_base import TestBase
 
 
+@patch(
+    "resource_allocator.managers.allocation.Config.get_instance",
+    return_value=MagicMock(
+        spec=Config,
+        AZURE_CONFIGURED=True,
+        LOCAL_LOGIN_ENABLED=True,
+        SECRET="asdf1234" * 8,
+        TENANT_ID="TENANT_ID",
+        REDIRECT_URI="http://REDIRECT_URI",
+        ALLOWED_ORIGINS=["http://localhost"],
+    )
+)
 class AllocationManagerTestCase(TestBase, unittest.TestCase):
     def setUp(self):
         super().setUp()
@@ -41,11 +55,11 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
                 "last_name": "bla",
             },
         ]
-        auth_manager = AuthManager(self.sess)
-        user_manager = UserManager(self.sess)
+        self.auth_manager = AuthManager(self.sess)
+        self.user_manager = UserManager(self.sess)
 
-        _ = [auth_manager.register(user) for user in self.users_data]
-        self.users = user_manager.list_all_items()
+        _ = [self.auth_manager.register(user) for user in self.users_data]
+        self.users = self.user_manager.list_all_items()
 
         self.resource_groups_data = [
             {
@@ -67,8 +81,9 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
                 "is_top_level": True,
             },
         ]
+        self.resource_group_manager = ResourceGroupManager(self.sess)
         self.resource_groups = [
-            ResourceGroupManager(self.sess).create_item(item)
+            self.resource_group_manager.create_item(item)
             for item
             in self.resource_groups_data
         ]
@@ -91,8 +106,9 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
                 "top_resource_group_id": 4,
             },
         ]
+        self.resource_manager = ResourceManager(self.sess)
         self.resources = [
-            ResourceManager(self.sess).create_item(item)
+            self.resource_manager.create_item(item)
             for item
             in self.resources_data
         ]
@@ -107,9 +123,11 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
                 "resource_group_id": 3,
             },
         ]
-        [ResourceToGroupManager(self.sess).create_item(item) for item in self.resource_to_group]
+        self.resource_to_group_manager = ResourceToGroupManager(self.sess)
+        [self.resource_to_group_manager.create_item(item) for item in self.resource_to_group]
 
-        self.iteration = IterationManager.create_item({
+        self.iteration_manager = IterationManager(self.sess)
+        self.iteration = self.iteration_manager.create_item({
             "start_date": dt.date(2020, 1, 1), "end_date": dt.date(2020, 1, 7),
         })
 
@@ -139,7 +157,8 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
                 "requested_resource_group_id": 4,
             },  # User 1 requests a resource in a different top resource group id
         ]
-        self.requests = [RequestManager(self.sess).create_item(item) for item in self.requests_data]
+        self.request_manager = RequestManager(self.sess)
+        self.requests = [self.request_manager.create_item(item) for item in self.requests_data]
 
         self.allocation_args = {
             "iteration_id": 1,

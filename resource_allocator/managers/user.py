@@ -2,25 +2,19 @@
 Logic manager for user-related options
 """
 
-from collections.abc import Callable
-from functools import wraps
+from dataclasses import dataclass
 import logging
 from typing import Any
 
-from flask_httpauth import HTTPTokenAuth
 import requests as req
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from resource_allocator.db import get_session
 from resource_allocator.managers.base import BaseManager
 from resource_allocator.models import UserModel, RoleModel, RoleEnum
 from resource_allocator.utils.auth import (
-    azure_configured,
     build_azure_ad_auth_url,
     build_azure_ad_token_request,
-    check_configured,
     generate_token,
-    parse_token,
 )
 from resource_allocator.config import Config
 
@@ -39,18 +33,12 @@ class UserManager(BaseManager):
         return super().modify_item(id, data)
 
 
+@dataclass
 class AuthManager(BaseManager):
+    config: Config
+
     model = UserModel
 
-    @property
-    def config(self) -> Config:
-        return Config.get_instance()
-
-    @check_configured(
-        check_fun=lambda: Config.get_instance().LOCAL_LOGIN_ENABLED,
-        error_code=400,
-        error_message="Local registrations are not enabled on this server",
-    )
     def register(self, data: dict) -> dict[str, str]:
         data = data.copy()
         data["password_hash"] = generate_password_hash(str(data["password"]))
@@ -80,7 +68,6 @@ class AuthManager(BaseManager):
 
         return {"id": user.id, "token": generate_token(user.id, secret=self.config.SECRET)}
 
-    @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
     def login_azure_init(self, data: dict | None = None) -> dict[str, str]:
         """
         Initiate or complete an Azure Active Directory login
@@ -109,7 +96,6 @@ class AuthManager(BaseManager):
             )
         }
 
-    @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
     def _register_azure(self, user_response: dict[str, Any]) -> dict[str, str]:
         """
         Register a new Azure Active Directory user using the user response from Azure. This method
@@ -147,7 +133,6 @@ class AuthManager(BaseManager):
         self.sess.flush()
         return user
 
-    @azure_configured(lambda: Config.get_instance().AZURE_CONFIGURED)
     def login_azure_finish(self, data: dict) -> dict[str, str]:
         """
         Finish the Azure Active Directory login by consuming an authorization code in exchange for
@@ -191,72 +176,6 @@ class AuthManager(BaseManager):
             return "User is not external; use password login", 400
 
         return {"id": user.id, "token": generate_token(user.id, secret=self.config.SECRET)}
-
-
-auth = HTTPTokenAuth(scheme="Bearer")
-
-
-@auth.verify_token
-def verify_token(token):
-    """
-    Verify the JWT token and return whatever flask_httpauth requires
-
-    Success: user object
-    No user: True
-    Failed auth: False
-    """
-    config = Config.get_instance()
-    try:
-        parsed_token = parse_token(token=token, secret=config.SECRET)
-    except Exception:
-        return False
-
-    user = get_session().get(UserModel, int(parsed_token["sub"]))
-    if not user:
-        return True
-
-    return user
-
-
-def get_user_role() -> str:
-    """
-    Function to get the current user's roles
-
-    Args:
-        None
-
-    Returns:
-        str: name of the assigned user role
-    """
-    role = get_session().get(RoleModel, auth.current_user().role_id).role
-    return role
-
-
-def role_required(role_name: str) -> Callable:
-    """
-    Decorator to check if a user has the required role role_name for an action
-
-    Args:
-        role_name: str: name of the role to check for
-
-    Returns:
-        Callable: wrapper function
-    """
-    def wrapper(fun):
-        @wraps(fun)
-        def wrapped(*args, **kwargs):
-            user = auth.current_user()
-            required_role_id = get_session() \
-                .query(RoleModel.id) \
-                .where(RoleModel.role == role_name) \
-                .scalar()
-
-            if not user.role_id == required_role_id:
-                return "Forbidden", 403
-
-            return fun(*args, **kwargs)
-        return wrapped
-    return wrapper
 
 
 def get_azure_user_info(azure_token: str) -> dict[str, Any]:
