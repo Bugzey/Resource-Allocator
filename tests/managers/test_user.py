@@ -152,6 +152,13 @@ class AuthManagerTestCase(TestBase, unittest.TestCase):
 class UserManagerTestCase(TestBase, unittest.TestCase):
     def setUp(self):
         super().setUp()
+        self.config = MagicMock(
+            spec=Config,
+            SECRET="asdf1234" * 8,
+            TENANT_ID="TENANT_ID",
+            REDIRECT_URI="REDIRECT_URI",
+            ALLOWED_ORIGINS=["http://localhost"],
+        )
         self.users = [
             {
                 "email": "admin@example.com",

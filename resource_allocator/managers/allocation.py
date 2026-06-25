@@ -3,7 +3,6 @@ Allocation manager
 """
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from resource_allocator.models import (
     AllocationModel,
@@ -20,9 +19,6 @@ from resource_allocator.managers.request import RequestManager
 class AllocationManager(BaseManager):
     model = AllocationModel
 
-    def __init__(self, sess: Session):
-        self.request_ma
-
     def create_item(self, data: dict) -> AllocationModel:
         """
         Create allocation and set status to completed
@@ -31,7 +27,7 @@ class AllocationManager(BaseManager):
         if not allocation.source_request_id:
             return allocation
 
-        RequestManager.approve(allocation.source_request_id, create_allocation=False)
+        RequestManager(self.sess).approve(allocation.source_request_id, create_allocation=False)
         self.sess.refresh(allocation)
         return allocation
 
@@ -46,8 +42,9 @@ class AllocationManager(BaseManager):
             AllocationModel
         """
         allocation: AllocationModel = self.list_single_item(id)
+        request_manager = RequestManager(self.sess)
         if allocation.source_request_id:
-            RequestManager.decline(allocation.source_request_id, delete_allocation=False)
+            request_manager.decline(allocation.source_request_id, delete_allocation=False)
         return super().delete_item(id)
 
     def _assign_points(self, request: RequestModel, resource: ResourceModel) -> int:
@@ -133,11 +130,12 @@ class AllocationManager(BaseManager):
         """
         #   Get the iteration being worked on and associated requests
         iteration = self.sess.get(IterationModel, data["iteration_id"])
+        request_manager = RequestManager(self.sess)
         all_resources = self.sess.query(ResourceModel).all()
 
         #   Handle all requests or a single request - limit to non-completed requests
         if "request_id" in data:
-            all_requests = [RequestManager.list_single_item(data["request_id"])]
+            all_requests = [request_manager.list_single_item(data["request_id"])]
         else:
             all_requests = iteration.requests
 
@@ -203,7 +201,7 @@ class AllocationManager(BaseManager):
 
                 request, resource = cur_allocation
                 #   Set request status - handled below by self.create_item
-                request = RequestManager.approve(request.id, create_allocation=False)
+                request = request_manager.approve(request.id, create_allocation=False)
 
                 #   Add to allocations
                 allocation[date].append({
@@ -232,10 +230,10 @@ class AllocationManager(BaseManager):
         fulfilled_request_ids = [item.source_request_id for item in result]
         leftover = [item for item in all_requests if item.id not in fulfilled_request_ids]
         for item in leftover:
-            RequestManager.decline(item.id)
+            request_manager.decline(item.id)
 
         #   Close iteration for new requests - if not allocating a single request
         if "request_id" not in data:
-            IterationManager.modify_item(iteration.id, {"is_allocated": True})
+            IterationManager(self.sess).modify_item(iteration.id, {"is_allocated": True})
 
         return result

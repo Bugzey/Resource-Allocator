@@ -4,7 +4,7 @@ Unit tests for managers.allocation
 
 import datetime as dt
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from resource_allocator.managers.allocation import AllocationManager
 from resource_allocator.config import Config
@@ -20,21 +20,18 @@ from resource_allocator.models import (
 from tests.managers.test_base import TestBase
 
 
-@patch(
-    "resource_allocator.managers.allocation.Config.get_instance",
-    return_value=MagicMock(
-        spec=Config,
-        AZURE_CONFIGURED=True,
-        LOCAL_LOGIN_ENABLED=True,
-        SECRET="asdf1234" * 8,
-        TENANT_ID="TENANT_ID",
-        REDIRECT_URI="http://REDIRECT_URI",
-        ALLOWED_ORIGINS=["http://localhost"],
-    )
-)
 class AllocationManagerTestCase(TestBase, unittest.TestCase):
     def setUp(self):
         super().setUp()
+        self.config = MagicMock(
+            spec=Config,
+            AZURE_CONFIGURED=True,
+            LOCAL_LOGIN_ENABLED=True,
+            SECRET="asdf1234" * 8,
+            TENANT_ID="TENANT_ID",
+            REDIRECT_URI="http://REDIRECT_URI",
+            ALLOWED_ORIGINS=["http://localhost"],
+        )
         self.users_data = [
             {
                 "email": "user1@example.com",
@@ -55,7 +52,7 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
                 "last_name": "bla",
             },
         ]
-        self.auth_manager = AuthManager(self.sess)
+        self.auth_manager = AuthManager(self.sess, config=self.config)
         self.user_manager = UserManager(self.sess)
 
         _ = [self.auth_manager.register(user) for user in self.users_data]
@@ -128,7 +125,9 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
 
         self.iteration_manager = IterationManager(self.sess)
         self.iteration = self.iteration_manager.create_item({
-            "start_date": dt.date(2020, 1, 1), "end_date": dt.date(2020, 1, 7),
+            "start_date": dt.date(2020, 1, 1),
+            "end_date": dt.date(2020, 1, 7),
+            "is_allocated": False,
         })
 
         self.requests_data = [
@@ -207,7 +206,7 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         self.assertTrue(self.sess.get(IterationModel, 1).is_allocated)
 
         #   Request statuses
-        requests = RequestManager.list_all_items()
+        requests = self.request_manager.list_all_items()
         requests.sort(key=lambda x: x.id)
         self.assertEqual(
             requests[0].request_status.request_status,
@@ -236,7 +235,7 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         _ = self.allocation_manager.automatic_allocation(self.allocation_args)
 
         #   New request to a free resource
-        request = RequestManager.create_item(
+        request = self.request_manager.create_item(
             {
                 "iteration_id": 1,
                 "requested_date": dt.date(2020, 1, 2),
@@ -255,7 +254,7 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         )
 
         #   New request to a busy resource - should get a different free resource in the same group
-        request = RequestManager.create_item(
+        request = self.request_manager.create_item(
             {
                 "iteration_id": 1,
                 "requested_date": dt.date(2020, 1, 2),
@@ -273,7 +272,7 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         )
 
         #   New request when no resources are free
-        request = RequestManager.create_item(
+        request = self.request_manager.create_item(
             {
                 "iteration_id": 1,
                 "requested_date": dt.date(2020, 1, 2),
@@ -293,7 +292,7 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         _ = self.allocation_manager.automatic_allocation(self.allocation_args)
 
         #   New request to a free resource
-        request = RequestManager.create_item(
+        request = self.request_manager.create_item(
             {
                 "iteration_id": 1,
                 "requested_date": dt.date(2020, 1, 2),
@@ -318,7 +317,7 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         )
 
         #   New request to a busy resource - should get a different free resource in the same group
-        request = RequestManager.create_item(
+        request = self.request_manager.create_item(
             {
                 "iteration_id": 1,
                 "requested_date": dt.date(2020, 1, 2),
@@ -341,7 +340,7 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         )
 
         #   New request when no resources are free
-        request = RequestManager.create_item(
+        request = self.request_manager.create_item(
             {
                 "iteration_id": 1,
                 "requested_date": dt.date(2020, 1, 2),
@@ -368,15 +367,15 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         #   Modify item - should delete the allocation and create a new one
         request = self.requests[0]
         old_allocation = request.allocation
-        request = RequestManager.modify_item(request.id, {"requested_resource_id": 2})
+        request = self.request_manager.modify_item(request.id, {"requested_resource_id": 2})
         new_allocation = request.allocation
         self.assertIsNone(self.allocation_manager.list_single_item(old_allocation.id))
         self.assertIsNotNone(new_allocation)
 
         #   Delete the item - should delete the allocation without creating a new one, reuse the
         #   modified request
-        _ = RequestManager.delete_item(request.id)
-        request = RequestManager.list_single_item(request.id)
+        _ = self.request_manager.delete_item(request.id)
+        request = self.request_manager.list_single_item(request.id)
         self.assertIsNone(request)
         new_allocation = self.allocation_manager.list_single_item(new_allocation.id)
         self.assertIsNone(new_allocation)
