@@ -10,6 +10,8 @@ from flask.views import MethodView
 import sqlalchemy as db
 from sqlalchemy.orm import Session
 
+from resource_allocator.config import Config
+
 
 @dataclass
 class BaseManager(MethodView, ABC):
@@ -26,6 +28,7 @@ class BaseManager(MethodView, ABC):
         sess: SQLAlchemy session for data access
     """
     sess: Session
+    config: Config | None = None
 
     nested_managers: ClassVar[dict[str, "BaseManager"] | None] = None
 

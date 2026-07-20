@@ -2,13 +2,15 @@
 Base resource for defining repeatable CRUD-like operations quicker
 """
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from collections.abc import Callable
 from functools import wraps
 
-from flask import request, abort
+from flask import request, abort, Flask, Blueprint
+from flask.views import MethodView
 from flask_httpauth import HTTPTokenAuth
-from flask_restful import Resource
 from marshmallow import Schema
+from sqlalchemy.orm import Session
 
 from resource_allocator.db import get_session
 from resource_allocator.config import Config
@@ -83,10 +85,18 @@ def role_required(role_name: str) -> Callable:
     return wrapper
 
 
-class BaseResource(ABC, Resource):
+@dataclass
+class BaseResource(ABC, MethodView):
+    sess: Session
+    config: Config | None = None
+
+    def __post_init__(self):
+        #   Instantiate the manager
+        self.manager = self.manager_class(self.sess, config=self.config)
+
     @property
     @abstractmethod
-    def manager(self) -> BaseManager: ...
+    def manager_class(self) -> BaseManager: ...
 
     @property
     def read_roles_required(self) -> list[str]:
@@ -138,6 +148,38 @@ class BaseResource(ABC, Resource):
             return fun(self, *args, **kwargs)
 
         return inner
+
+    @classmethod
+    def register_method_view(
+        cls,
+        app: Flask | Blueprint,
+        name: str,
+        sess: Session,
+        config: Config | None = None,
+        rule: str | None = None,
+    ) -> None:
+        """
+        Register the method view resource to an app or blueprint
+
+        This registration is specific to CRUD-resources - registering a {name}-group and a
+        {name}-item URL rule handing /{name}/ and /{name}/<int:id> endpoint
+
+        Args:
+            app: Flask app or Blueprint
+            name: name of the endpoint
+            sess: active SQLAlchemy Session
+            config: optional Config instance if used by the manager_class
+            rule: Optional specific URL rule in the form of /some/api/link - trailing slashes and
+                arguments at the user's discretion. If None, register as "/name"
+        """
+        app.add_url_rule(
+            rule=rule or f"/{name}",
+            view_func=cls.as_view(
+                name=name,
+                sess=sess,
+                config=config,
+            ),
+        )
 
 
 class CRUDResource(BaseResource):
@@ -228,3 +270,47 @@ class CRUDResource(BaseResource):
 
         result = self.manager.modify_item(id, self.request_schema().load(data, partial=True))
         return self.response_schema().dump(result)
+
+    @classmethod
+    def register_method_view(
+        cls,
+        app: Flask | Blueprint,
+        name: str,
+        sess: Session,
+        config: Config | None = None,
+        rule: str | None = None,
+    ) -> None:
+        """
+        Register the method view resource to an app or blueprint
+
+        This registration is specific to CRUD-resources - registering a {name}-group and a
+        {name}-item URL rule handing /{name}/ and /{name}/<int:id> endpoint
+
+        Args:
+            app: Flask app or Blueprint
+            name: name of the endpoint
+            sess: active SQLAlchemy Session
+            config: optional Config instance if used by the manager_class
+        """
+        if rule:
+            raise ValueError(
+                f"CRUD Resources do not support a rule input - {rule}. Redefine the "
+                "register_method_view method in stead"
+            )
+
+        app.add_url_rule(
+            f"/{name}/",
+            view_func=cls.as_view(
+                name=f"{name}-group",
+                sess=sess,
+                config=config,
+            ),
+        )
+        app.add_url_rule(
+            f"/{name}/<int:id>",
+            view_func=cls.as_view(
+                name=f"{name}-item",
+                sess=sess,
+                config=config,
+            ),
+        )

@@ -3,16 +3,22 @@ Unittests for utils.schema
 """
 
 import unittest
+from unittest.mock import patch, MagicMock
 
 from flask import request
 from marshmallow import Schema, fields
 
+from resource_allocator.config import Config
 from resource_allocator.main import create_app
 from resource_allocator.utils.schema import (
     validate_schema,
 )
 
 
+@patch(
+    "resource_allocator.main.Config",
+    spec=Config,
+)
 class ValidateSchemaTestCase(unittest.TestCase):
     class SomeSchema(Schema):
         id = fields.Int(required=True)

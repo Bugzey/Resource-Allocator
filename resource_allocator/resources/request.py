@@ -13,7 +13,7 @@ from resource_allocator.resources.base import BaseResource, CRUDResource, auth, 
 
 
 class RequestResource(CRUDResource):
-    manager = RequestManager
+    manager_class = RequestManager
     request_schema = RequestRequestSchema
     response_schema = RequestResponseSchema
     read_roles_required = ["user", "admin"]
@@ -21,7 +21,7 @@ class RequestResource(CRUDResource):
 
 
 class RequestApproveResource(BaseResource):
-    manager = RequestManager
+    manager_class = RequestManager
     response_schema = RequestResponseSchema
 
     @auth.login_required
@@ -31,7 +31,7 @@ class RequestApproveResource(BaseResource):
 
 
 class RequestDeclineResource(BaseResource):
-    manager = RequestManager
+    manager_class = RequestManager
     response_schema = RequestResponseSchema
 
     @auth.login_required

@@ -18,7 +18,7 @@ from resource_allocator.resources.base import CRUDResource, auth
 
 
 class ResourceResource(CRUDResource):
-    manager = ResourceManager
+    manager_class = ResourceManager
     request_schema = ResourceRequestSchema
     response_schema = ResourceResponseSchema
     read_roles_required = ["user", "admin"]
@@ -26,7 +26,7 @@ class ResourceResource(CRUDResource):
 
 
 class ResourceGroupResource(CRUDResource):
-    manager = ResourceGroupManager
+    manager_class = ResourceGroupManager
     request_schema = ResourceGroupRequestSchema
     response_schema = ResourceGroupResponseSchema
     read_roles_required = ["user", "admin"]

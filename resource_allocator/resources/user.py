@@ -3,13 +3,12 @@ Resources related to working with users
 """
 
 from flask import request, abort
-from flask_restful import Resource
 
 from resource_allocator.managers.user import (
     AuthManager,
     UserManager,
 )
-from resource_allocator.resources.base import CRUDResource, auth
+from resource_allocator.resources.base import BaseResource, CRUDResource, auth
 from resource_allocator.schemas.user import (
     RegisterUserRequestSchema,
     LoginUserRequestSchema,
@@ -22,7 +21,7 @@ from resource_allocator.utils.schema import validate_schema
 
 
 class UserResource(CRUDResource):
-    manager = UserManager
+    manager_class = UserManager
     request_schema = UserRequestSchema
     response_schema = UserResponseSchema
     read_roles_required = ["user", "admin"]
@@ -40,13 +39,17 @@ class UserResource(CRUDResource):
         return super().get(id)
 
 
-class RegisterUserResource(Resource):
+class RegisterUserResource(BaseResource):
     """
     API endpoint for registering users
 
     Methods:
         post: post request to register
     """
+    manager_class = AuthManager
+    request_schema = RegisterUserRequestSchema
+    response_schema = LoginUserResponseSchema
+
     @validate_schema(RegisterUserRequestSchema)
     def post(self) -> dict:
         """
@@ -59,22 +62,26 @@ class RegisterUserResource(Resource):
             dict: dictionary with a Bearer token
         """
         data = request.get_json()
-        result = AuthManager.register(data)
+        result = self.manager.register(data)
 
         #   In case manager returns ("message", error_code)
         if len(result) > 1:
             return result
 
-        return LoginUserResponseSchema().dump(result)
+        return self.response_schema().dump(result)
 
 
-class LoginUserResource(Resource):
+class LoginUserResource(BaseResource):
     """
     API endpoint for logging in a user
 
     Methods:
         post: post request to log in a user
     """
+    manager_class = AuthManager
+    request_schema = RegisterUserRequestSchema
+    response_schema = LoginUserResponseSchema
+
     @validate_schema(LoginUserRequestSchema)
     def post(self) -> dict:
         """
@@ -87,16 +94,16 @@ class LoginUserResource(Resource):
             dict: dictionary with a Bearer token
         """
         data = request.get_json()
-        result = AuthManager.login(data)
+        result = self.manager.login(data)
 
         #   In case manager returns ("message", error_code)
         if len(result) > 1:
             return result
 
-        return LoginUserResponseSchema().dump(result)
+        return self.response_schema().dump(result)
 
 
-class LoginUserAzureResource(Resource):
+class LoginUserAzureResource(BaseResource):
     """
     API Endpoint for logging in and implicitly registering external users via Azure Active Directory
 
@@ -104,16 +111,20 @@ class LoginUserAzureResource(Resource):
         get: get request that returns an authentication URL that users must visit
         post: finish the Azure log-in process by consuming an authorization code
     """
+    manager_class = AuthManager
+    request_schema = RegisterUserRequestSchema
+    response_schema = LoginUserResponseSchema
+
     def get(self) -> dict:
-        return AuthManager.login_azure_init(data=request.args)
+        return self.manager.login_azure_init(data=request.args)
 
     @validate_schema(LoginUserAzureRequestSchema)
     def post(self) -> dict:
         data = request.get_json()
-        result = AuthManager.login_azure_finish(data)
+        result = self.manager.login_azure_finish(data)
 
         #   In case manager returns ("message", error_code)
         if len(result) > 1:
             return result
 
-        return LoginUserResponseSchema().dump(result)
+        return self.response_schema().dump(result)
