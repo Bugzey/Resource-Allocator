@@ -16,7 +16,6 @@ dependencies = [
 	"alembic~=1.14",
 	"flask~=3.1",
 	"flask_httpauth~=4.8",
-	"flask_restful~=0.3",
 	"gunicorn~=22.0",
 	"marshmallow~=3.23",
 	"pillow~=11.1",

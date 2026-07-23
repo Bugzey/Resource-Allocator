@@ -2,8 +2,9 @@
 Resources related to working with users
 """
 
-from flask import request, abort
+from flask import request, abort, Flask, Blueprint
 
+from resource_allocator.config import Config
 from resource_allocator.managers.user import (
     AuthManager,
     UserManager,
@@ -37,6 +38,27 @@ class UserResource(CRUDResource):
             id = auth.current_user().id
 
         return super().get(id)
+
+    @classmethod
+    def register_method_view(
+        cls,
+        app: Flask | Blueprint,
+        name: str,
+        config: Config,
+        rule: str | None = None,
+    ) -> None:
+        """
+        Register a CRUD resource and add an additional /users/me endpoint"
+        """
+        super().register_method_view(app, name, config=config)
+        app.add_url_rule(
+            f"/{name}/me",
+            view_func=cls.as_view(
+                name=f"{name}-me",
+                sess=config.get_session(),
+                config=config,
+            ),
+        )
 
 
 class RegisterUserResource(BaseResource):

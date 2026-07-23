@@ -26,25 +26,24 @@ CONFIG = MagicMock(
 class RegisterUserTestCase(TestBase, unittest.TestCase):
     def setUp(self):
         super().setUp()
+        CONFIG.get_session.return_value = self.sess
         self.app = Flask(__name__)
-        user.RegisterUserResource.register_method_view(
+        user.RegisterUserResource.register_view(
             self.app,
+            config=CONFIG,
             name="register",
-            sess=self.sess,
-            config=CONFIG,
         )
-        user.LoginUserResource.register_method_view(
+        user.LoginUserResource.register_view(
             self.app,
+            config=CONFIG,
             name="login",
-            sess=self.sess,
-            config=CONFIG,
         )
-        user.LoginUserAzureResource.register_method_view(
+        user.LoginUserAzureResource.register_view(
             self.app,
-            name="login_azure",
-            sess=self.sess,
             config=CONFIG,
+            name="login_azure",
         )
+
         self.register_data = {
             "email": "test@example.com",
             "password": "123123ABCabc.",

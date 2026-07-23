@@ -150,25 +150,20 @@ class BaseResource(ABC, MethodView):
         return inner
 
     @classmethod
-    def register_method_view(
+    def register_view(
         cls,
         app: Flask | Blueprint,
+        config: Config,
         name: str,
-        sess: Session,
-        config: Config | None = None,
         rule: str | None = None,
     ) -> None:
         """
-        Register the method view resource to an app or blueprint
-
-        This registration is specific to CRUD-resources - registering a {name}-group and a
-        {name}-item URL rule handing /{name}/ and /{name}/<int:id> endpoint
+        Register the method view resource to an app or blueprint - register as a single endpoint
 
         Args:
             app: Flask app or Blueprint
             name: name of the endpoint
-            sess: active SQLAlchemy Session
-            config: optional Config instance if used by the manager_class
+            config: Config instance if used by the manager_class
             rule: Optional specific URL rule in the form of /some/api/link - trailing slashes and
                 arguments at the user's discretion. If None, register as "/name"
         """
@@ -176,7 +171,7 @@ class BaseResource(ABC, MethodView):
             rule=rule or f"/{name}",
             view_func=cls.as_view(
                 name=name,
-                sess=sess,
+                sess=config.get_session(),
                 config=config,
             ),
         )
@@ -272,12 +267,11 @@ class CRUDResource(BaseResource):
         return self.response_schema().dump(result)
 
     @classmethod
-    def register_method_view(
+    def register_view(
         cls,
         app: Flask | Blueprint,
+        config: Config,
         name: str,
-        sess: Session,
-        config: Config | None = None,
         rule: str | None = None,
     ) -> None:
         """
@@ -288,9 +282,9 @@ class CRUDResource(BaseResource):
 
         Args:
             app: Flask app or Blueprint
-            name: name of the endpoint
-            sess: active SQLAlchemy Session
             config: optional Config instance if used by the manager_class
+            name: name of the endpoint
+            rule: optional rule notation. If blank, makes /{name}/ and /{name}/<int:id>
         """
         if rule:
             raise ValueError(
@@ -302,7 +296,7 @@ class CRUDResource(BaseResource):
             f"/{name}/",
             view_func=cls.as_view(
                 name=f"{name}-group",
-                sess=sess,
+                sess=config.get_session(),
                 config=config,
             ),
         )
@@ -310,7 +304,7 @@ class CRUDResource(BaseResource):
             f"/{name}/<int:id>",
             view_func=cls.as_view(
                 name=f"{name}-item",
-                sess=sess,
+                sess=config.get_session(),
                 config=config,
             ),
         )

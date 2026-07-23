@@ -2,6 +2,7 @@ import configparser
 from dataclasses import dataclass, field
 import os
 from pathlib import Path
+from typing import ClassVar
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
@@ -37,6 +38,7 @@ class Config:
         Path().home() / ".config" / "resource_allocator" / "config",
     )
     _instance = []
+    _sess: ClassVar[Session]
 
     @classmethod
     def get_instance(cls) -> "Config":
@@ -49,16 +51,29 @@ class Config:
         raise RuntimeError("No Config instance initialized")
 
     @classmethod
-    def get_session(cls) -> Session:
-        """
-        Create a new session from the single configured instance
-        """
-        instance = cls.get_instance()
-        return Session(instance._engine)
-
-    @classmethod
     def reset_instance(cls) -> None:
         cls._instance = []
+
+    @classmethod
+    def get_session(cls) -> Session:
+        """
+        Get or create a session for the config. This calls an existing session. A session can be
+        reset via the reset_session method
+
+        A classmethod is required by calls from the db module
+        """
+        instance = cls.get_instance()
+        return getattr(instance, "_sess", instance.reset_session())
+
+    def reset_session(self) -> Session:
+        """
+        Create and store a new session
+
+        This object can be passed at app startup time to managers, and calls to the reset_session
+        method will replace the session with a new session
+        """
+        self._sess = Session(self._engine)
+        return self._sess
 
     def __post_init__(self):
         """

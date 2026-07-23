@@ -5,11 +5,77 @@ This module is the entry point to the appliation crateing and returning a Flask 
 """
 
 from flask import Flask, request, Response, abort
-from flask_restful import Api
 
 from resource_allocator.config import Config
-from resource_allocator.db import get_session
-from resource_allocator.resources.routes import routes
+from resource_allocator.resources.allocation import (
+    AllocationResource,
+    AutoAllocationResource,
+)
+from resource_allocator.resources.image import (
+    ImageResource,
+    ImagePropertiesResource,
+)
+from resource_allocator.resources.iteration import IterationResource
+from resource_allocator.resources.request import (
+    RequestResource,
+    RequestApproveResource,
+    RequestDeclineResource,
+)
+from resource_allocator.resources.resource import (
+    ResourceGroupResource,
+    ResourceResource,
+)
+from resource_allocator.resources.resource_to_group import ResourceToGroupResource
+from resource_allocator.resources.user import (
+    LoginUserResource,
+    LoginUserAzureResource,
+    RegisterUserResource,
+    UserResource,
+)
+
+
+def register_routes(app: Flask, config: Config) -> Flask:
+    #   Users
+    RegisterUserResource.register_view(app, config, "register", rule="/register/")
+    LoginUserResource.register_view(app, config, "login", rule="/login/")
+    LoginUserAzureResource.register_view(app, config, "login_azure", rule="/login_azure/")
+    UserResource.register_view(app, config, "users")
+
+    #   CRUD resources
+    ResourceResource.register_view(app, config, name="resources")
+    ResourceGroupResource.register_view(app, config, name="resource_groups")
+    ResourceToGroupResource.register_view(app, config, name="resource_to_group")
+    ImageResource.register_view(app, config, name="images")
+    ImagePropertiesResource.register_view(app, config, name="image_properties")
+    IterationResource.register_view(app, config, name="iterations")
+    RequestResource.register_view(app, config, name="requests")
+    AllocationResource.register_view(app, config, name="allocation")
+
+    #   Convenience Methods
+    AutoAllocationResource.register_view(
+        app,
+        config,
+        "allocation_auto_allocation",
+        rule="/allocation/auto_allocation",
+    )
+    AutoAllocationResource.register_view(
+        app,
+        config,
+        "auto_allocation",
+        rule="/auto_allocation",
+    )
+    RequestApproveResource.register_view(
+        app,
+        config,
+        "request_approve",
+        rule="/requests/<int:id>/approve",
+    )
+    RequestDeclineResource.register_view(
+        app,
+        config,
+        "request_decline",
+        rule="/requests/<int:id>/decline",
+    )
 
 
 def create_app() -> Flask:
@@ -23,12 +89,12 @@ def create_app() -> Flask:
         flask.Flask: instantiated Flask application
     """
     config = Config.from_environment()
-    sess = get_session()
     app = Flask(__name__)
-    api = Api(app)
+    register_routes(app, config)
 
-    for route in routes:
-        api.add_resource(*route)
+    @app.before_request
+    def reset_session():
+        config.reset_session()
 
     @app.before_request
     def check_origin():
@@ -44,6 +110,7 @@ def create_app() -> Flask:
 
     @app.after_request
     def commit(response):
+        sess = config.get_session()
         sess.commit()
         return response
 
