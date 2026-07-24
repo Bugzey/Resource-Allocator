@@ -10,7 +10,6 @@ from flask import request, abort, Flask, Blueprint
 from flask.views import MethodView
 from flask_httpauth import HTTPTokenAuth
 from marshmallow import Schema
-from sqlalchemy.orm import Session
 
 from resource_allocator.db import get_session
 from resource_allocator.config import Config
@@ -87,12 +86,11 @@ def role_required(role_name: str) -> Callable:
 
 @dataclass
 class BaseResource(ABC, MethodView):
-    sess: Session
-    config: Config | None = None
+    config: Config
 
     def __post_init__(self):
-        #   Instantiate the manager
-        self.manager = self.manager_class(self.sess, config=self.config)
+        #   Instantiate the manager - call config.get_session() to get the current session
+        self.manager = self.manager_class(sess=self.config.get_session(), config=self.config)
 
     @property
     @abstractmethod
@@ -171,7 +169,6 @@ class BaseResource(ABC, MethodView):
             rule=rule or f"/{name}",
             view_func=cls.as_view(
                 name=name,
-                sess=config.get_session(),
                 config=config,
             ),
         )
@@ -296,7 +293,6 @@ class CRUDResource(BaseResource):
             f"/{name}/",
             view_func=cls.as_view(
                 name=f"{name}-group",
-                sess=config.get_session(),
                 config=config,
             ),
         )
@@ -304,7 +300,6 @@ class CRUDResource(BaseResource):
             f"/{name}/<int:id>",
             view_func=cls.as_view(
                 name=f"{name}-item",
-                sess=config.get_session(),
                 config=config,
             ),
         )

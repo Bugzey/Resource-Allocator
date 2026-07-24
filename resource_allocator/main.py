@@ -93,10 +93,6 @@ def create_app() -> Flask:
     register_routes(app, config)
 
     @app.before_request
-    def reset_session():
-        config.reset_session()
-
-    @app.before_request
     def check_origin():
         origin = request.headers.get("Origin")
         if origin is None:
@@ -109,9 +105,8 @@ def create_app() -> Flask:
             abort(400, f"Request origin {origin} not allowed")
 
     @app.after_request
-    def commit(response):
-        sess = config.get_session()
-        sess.commit()
+    def reset_session(response: Response):
+        config.reset_session()
         return response
 
     @app.after_request

@@ -6,6 +6,7 @@ from typing import ClassVar
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
+from sqlalchemy.exc import PendingRollbackError
 from sqlalchemy.orm import Session
 
 
@@ -72,6 +73,12 @@ class Config:
         This object can be passed at app startup time to managers, and calls to the reset_session
         method will replace the session with a new session
         """
+        try:
+            self._sess.commit()
+        except PendingRollbackError:
+            self._sess.rollback()
+
+        self._sess.close()
         self._sess = Session(self._engine)
         return self._sess
 
@@ -116,7 +123,9 @@ class Config:
             database=self.DB_DATABASE,
         )
         self.__class__._instance.append(self)
-        self._engine = create_engine(self.URL)
+        self._engine = create_engine(self.URL, echo=True)
+        #   Start with a session?
+        self._sess = Session(self._engine)
 
     @property
     def AZURE_CONFIGURED(self) -> bool:

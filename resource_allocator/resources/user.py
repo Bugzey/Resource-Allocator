@@ -55,7 +55,6 @@ class UserResource(CRUDResource):
             f"/{name}/me",
             view_func=cls.as_view(
                 name=f"{name}-me",
-                sess=config.get_session(),
                 config=config,
             ),
         )
