@@ -77,7 +77,6 @@ class ResourceResourceTestCase(TestBase, unittest.TestCase):
 
     def test_get(self, *args, **kwargs):
         result = self.client.get(path=f"/resources/{self.resource.id}")
-        breakpoint()
         self.assertIsInstance(result, dict)
         self.assertIn("name", result)
         self.assertEqual(result["name"], "resource")

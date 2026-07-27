@@ -89,12 +89,19 @@ class ConfigTestCase(unittest.TestCase):
         """
         config = Config(**self.kwargs)
         config._engine = create_engine("sqlite+pysqlite:///:memory:")
+        config._sess = None  # get_session and reset_session create sessions with the new engine
 
+        #   First session
         sess = config.get_session()
         self.assertIsInstance(sess, Session)
         sess_id = id(sess)
 
-        #   Test reset
-        config.reset_instance()
+        #   Test get_session
+        sess = config.get_session()
+        self.assertIsInstance(sess, Session)
+        self.assertEqual(sess_id, id(sess))
+
+        #   Test reset_session
+        config.reset_session()
         sess = config.get_session()
         self.assertNotEqual(sess_id, id(sess))

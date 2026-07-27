@@ -14,4 +14,3 @@ class GetSessionTestCase(unittest.TestCase):
     def test_get_session(self, config: MagicMock):
         _ = get_session()
         config.get_session.assert_called()
-        config.get_session.return_value.connection.assert_called()

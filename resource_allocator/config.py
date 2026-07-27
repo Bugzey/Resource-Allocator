@@ -64,7 +64,9 @@ class Config:
         A classmethod is required by calls from the db module
         """
         instance = cls.get_instance()
-        return getattr(instance, "_sess", instance.reset_session())
+        if not getattr(instance, "_sess"):
+            instance._sess = Session(instance._engine)
+        return instance._sess
 
     def reset_session(self) -> Session:
         """
@@ -74,6 +76,7 @@ class Config:
         method will replace the session with a new session
         """
         try:
+            self._sess.connection()  # connection test
             self._sess.commit()
         except PendingRollbackError:
             self._sess.rollback()
@@ -123,7 +126,8 @@ class Config:
             database=self.DB_DATABASE,
         )
         self.__class__._instance.append(self)
-        self._engine = create_engine(self.URL, echo=True)
+        self._engine = create_engine(self.URL, echo=False)
+
         #   Start with a session?
         self._sess = Session(self._engine)
 
