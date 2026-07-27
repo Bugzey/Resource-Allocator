@@ -4,16 +4,11 @@ Tests for managers.base
 
 import unittest
 
-from sqlalchemy.orm import Mapped
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session, Mapped
 
-from resource_allocator.config import Config
-from resource_allocator.db import get_session
-from resource_allocator.models import metadata, Base
-from resource_allocator.utils.db import change_schema
+from resource_allocator.models import metadata, Base, populate_enums
 from resource_allocator.managers.base import BaseManager
-
-
-metadata = change_schema(metadata, "resource_allocator_test")
 
 
 class SomeTable(Base):
@@ -21,50 +16,60 @@ class SomeTable(Base):
     name: Mapped[str]
 
 
-class BaseManagerTestCase(unittest.TestCase):
-    class SomeManager(BaseManager):
-        model = SomeTable
-
+class TestBase:
     def setUp(self):
-        self.config = Config.from_environment()
-        self.sess = get_session()
-        metadata.create_all(self.sess.bind)
-        self.item = {
-            "name": "some_item",
-        }
+        self.engine = create_engine("sqlite+pysqlite:///:memory:")
+        self.sess = Session(self.engine)
+        self.sess.execute(text("attach \":memory:\" as \"resource_allocator\""))
+        metadata.create_all(self.engine)
+        populate_enums(self.sess)
 
     def tearDown(self):
         self.sess.rollback()
         metadata.drop_all(self.sess.bind)
+        self.sess.close()
+        self.engine.dispose()
+
+
+class BaseManagerTestCase(TestBase, unittest.TestCase):
+    class SomeManager(BaseManager):
+        model = SomeTable
+
+    def setUp(self):
+        super().setUp()
+        self.item = {
+            "name": "some_item",
+        }
+        self.manager = self.SomeManager(self.sess)
 
     def test_create_item(self):
-        item = self.SomeManager.create_item(self.item)
+        item = self.manager.create_item(self.item)
         self.assertTrue(isinstance(item, SomeTable))
         self.assertIsNotNone(item.id)
 
     def test_single_item(self):
-        item = self.SomeManager.create_item(self.item)
+        item = self.manager.create_item(self.item)
         with self.subTest("Existing"):
-            result = self.SomeManager.list_single_item(id=item.id)
+            result = self.manager.list_single_item(id=item.id)
             self.assertEqual(item, result)
 
         with self.subTest("Missing"):
-            result = self.SomeManager.list_single_item(id=item.id - 1)
+            result = self.manager.list_single_item(id=item.id - 1)
             self.assertIsNone(result)
 
     def test_list_all_items(self):
-        item = self.SomeManager.create_item(self.item)
-        item = self.SomeManager.create_item(self.item)
-        result = self.SomeManager.list_all_items()
+        item = self.manager.create_item(self.item)
+        item = self.manager.create_item(self.item)
+        result = self.manager.list_all_items()
         self.assertTrue(isinstance(result, list))
         self.assertEqual(len(result), 2)
         self.assertEqual(result[-1], item)
 
     def test_delete_item(self):
-        item = self.SomeManager.create_item(self.item)
-        self.SomeManager.delete_item(item.id)
-        result = self.SomeManager.list_all_items()
+        item = self.manager.create_item(self.item)
+        self.manager.delete_item(item.id)
+        result = self.manager.list_all_items()
         self.assertEqual(result, [])
 
-        second_result = self.SomeManager.delete_item(item.id)
+        second_result = self.manager.delete_item(item.id)
         self.assertIsNone(second_result)

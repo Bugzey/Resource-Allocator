@@ -17,7 +17,7 @@ from resource_allocator.resources.base import CRUDResource
 
 
 class ImageResource(CRUDResource):
-    manager = ImageManager
+    manager_class = ImageManager
     request_schema = ImageRequestSchema
     response_schema = ImageResponseSchema
     read_roles_required = ["user", "admin"]
@@ -25,7 +25,7 @@ class ImageResource(CRUDResource):
 
 
 class ImagePropertiesResource(CRUDResource):
-    manager = ImagePropertiesManager
+    manager_class = ImagePropertiesManager
     request_schema = ImagePropertiesRequestSchema
     response_schema = ImagePropertiesResponseSchema
     read_roles_required = ["user", "admin"]

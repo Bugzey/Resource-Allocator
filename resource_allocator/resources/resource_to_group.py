@@ -10,7 +10,7 @@ from resource_allocator.schemas.resource_to_group import (
 
 
 class ResourceToGroupResource(CRUDResource):
-    manager = ResourceToGroupManager
+    manager_class = ResourceToGroupManager
     request_schema = ResourceToGroupRequestSchema
     response_schema = ResourceToGroupResponseSchema
     read_roles_required = ["user", "admin"]

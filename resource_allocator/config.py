@@ -2,9 +2,12 @@ import configparser
 from dataclasses import dataclass, field
 import os
 from pathlib import Path
+from typing import ClassVar
 
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine, url
+from sqlalchemy.exc import PendingRollbackError
 from sqlalchemy.orm import Session
-from sqlalchemy.engine import url
 
 
 @dataclass(kw_only=True)
@@ -29,13 +32,14 @@ class Config:
     SERVER_NAME: str | None
     ALLOWED_ORIGINS: list[str] = field(default_factory=list)
 
-    _sess: Session = field(init=False, default=None)
+    _engine: Engine = field(init=False, repr=False)
     _default_paths = (
         Path("config"),
         Path().home() / ".resource_allocator",
         Path().home() / ".config" / "resource_allocator" / "config",
     )
     _instance = []
+    _sess: ClassVar[Session]
 
     @classmethod
     def get_instance(cls) -> "Config":
@@ -50,6 +54,36 @@ class Config:
     @classmethod
     def reset_instance(cls) -> None:
         cls._instance = []
+
+    @classmethod
+    def get_session(cls) -> Session:
+        """
+        Get or create a session for the config. This calls an existing session. A session can be
+        reset via the reset_session method
+
+        A classmethod is required by calls from the db module
+        """
+        instance = cls.get_instance()
+        if not getattr(instance, "_sess"):
+            instance._sess = Session(instance._engine)
+        return instance._sess
+
+    def reset_session(self) -> Session:
+        """
+        Create and store a new session
+
+        This object can be passed at app startup time to managers, and calls to the reset_session
+        method will replace the session with a new session
+        """
+        try:
+            self._sess.connection()  # connection test
+            self._sess.commit()
+        except PendingRollbackError:
+            self._sess.rollback()
+
+        self._sess.close()
+        self._sess = Session(self._engine)
+        return self._sess
 
     def __post_init__(self):
         """
@@ -92,6 +126,10 @@ class Config:
             database=self.DB_DATABASE,
         )
         self.__class__._instance.append(self)
+        self._engine = create_engine(self.URL, echo=False)
+
+        #   Start with a session?
+        self._sess = Session(self._engine)
 
     @property
     def AZURE_CONFIGURED(self) -> bool:

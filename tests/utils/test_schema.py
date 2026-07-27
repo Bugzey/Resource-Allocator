@@ -3,16 +3,22 @@ Unittests for utils.schema
 """
 
 import unittest
+from unittest.mock import patch
 
 from flask import request
 from marshmallow import Schema, fields
 
+from resource_allocator.config import Config
 from resource_allocator.main import create_app
 from resource_allocator.utils.schema import (
     validate_schema,
 )
 
 
+@patch(
+    "resource_allocator.main.Config",
+    spec=Config,
+)
 class ValidateSchemaTestCase(unittest.TestCase):
     class SomeSchema(Schema):
         id = fields.Int(required=True)
@@ -34,7 +40,7 @@ class ValidateSchemaTestCase(unittest.TestCase):
         self.app = create_app()
         self.app.add_url_rule("/test", view_func=self.some_fun)
 
-    def test_validate_schema(self):
+    def test_validate_schema(self, *args, **kwargs):
         with self.subTest("Good fields"):
             with self.app.test_request_context(
                 "/test", method="POST", json=self.good_data,

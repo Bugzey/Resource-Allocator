@@ -2,22 +2,99 @@
 Base resource for defining repeatable CRUD-like operations quicker
 """
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
 
-from flask import request, abort
-from flask_restful import Resource
+from flask import request, abort, Flask, Blueprint
+from flask.views import MethodView
+from flask_httpauth import HTTPTokenAuth
 from marshmallow import Schema
 
-from resource_allocator.models import RoleEnum
-from resource_allocator.managers.user import auth, get_user_role
+from resource_allocator.db import get_session
+from resource_allocator.config import Config
+from resource_allocator.models import UserModel, RoleModel, RoleEnum
 from resource_allocator.managers.base import BaseManager
+from resource_allocator.utils.auth import parse_token
 
 
-class BaseResource(ABC, Resource):
+auth = HTTPTokenAuth(scheme="Bearer")
+
+
+@auth.verify_token
+def verify_token(token):
+    """
+    Verify the JWT token and return whatever flask_httpauth requires
+
+    Success: user object
+    No user: True
+    Failed auth: False
+    """
+    config = Config.get_instance()
+    try:
+        parsed_token = parse_token(token=token, secret=config.SECRET)
+    except Exception:
+        return False
+
+    user = get_session().get(UserModel, int(parsed_token["sub"]))
+    if not user:
+        return True
+
+    return user
+
+
+def get_user_role() -> str:
+    """
+    Function to get the current user's roles
+
+    Args:
+        None
+
+    Returns:
+        str: name of the assigned user role
+    """
+    role = get_session().get(RoleModel, auth.current_user().role_id).role
+    return role
+
+
+def role_required(role_name: str) -> Callable:
+    """
+    Decorator to check if a user has the required role role_name for an action
+
+    Args:
+        role_name: str: name of the role to check for
+
+    Returns:
+        Callable: wrapper function
+    """
+    def wrapper(fun):
+        @wraps(fun)
+        def wrapped(*args, **kwargs):
+            user = auth.current_user()
+            required_role_id = get_session() \
+                .query(RoleModel.id) \
+                .where(RoleModel.role == role_name) \
+                .scalar()
+
+            if not user.role_id == required_role_id:
+                return "Forbidden", 403
+
+            return fun(*args, **kwargs)
+        return wrapped
+    return wrapper
+
+
+@dataclass
+class BaseResource(ABC, MethodView):
+    config: Config
+
+    def __post_init__(self):
+        #   Instantiate the manager - call config.get_session() to get the current session
+        self.manager = self.manager_class(sess=self.config.get_session(), config=self.config)
+
     @property
     @abstractmethod
-    def manager(self) -> BaseManager: ...
+    def manager_class(self) -> BaseManager: ...
 
     @property
     def read_roles_required(self) -> list[str]:
@@ -69,6 +146,32 @@ class BaseResource(ABC, Resource):
             return fun(self, *args, **kwargs)
 
         return inner
+
+    @classmethod
+    def register_view(
+        cls,
+        app: Flask | Blueprint,
+        config: Config,
+        name: str,
+        rule: str | None = None,
+    ) -> None:
+        """
+        Register the method view resource to an app or blueprint - register as a single endpoint
+
+        Args:
+            app: Flask app or Blueprint
+            name: name of the endpoint
+            config: Config instance if used by the manager_class
+            rule: Optional specific URL rule in the form of /some/api/link - trailing slashes and
+                arguments at the user's discretion. If None, register as "/name"
+        """
+        app.add_url_rule(
+            rule=rule or f"/{name}",
+            view_func=cls.as_view(
+                name=name,
+                config=config,
+            ),
+        )
 
 
 class CRUDResource(BaseResource):
@@ -159,3 +262,44 @@ class CRUDResource(BaseResource):
 
         result = self.manager.modify_item(id, self.request_schema().load(data, partial=True))
         return self.response_schema().dump(result)
+
+    @classmethod
+    def register_view(
+        cls,
+        app: Flask | Blueprint,
+        config: Config,
+        name: str,
+        rule: str | None = None,
+    ) -> None:
+        """
+        Register the method view resource to an app or blueprint
+
+        This registration is specific to CRUD-resources - registering a {name}-group and a
+        {name}-item URL rule handing /{name}/ and /{name}/<int:id> endpoint
+
+        Args:
+            app: Flask app or Blueprint
+            config: optional Config instance if used by the manager_class
+            name: name of the endpoint
+            rule: optional rule notation. If blank, makes /{name}/ and /{name}/<int:id>
+        """
+        if rule:
+            raise ValueError(
+                f"CRUD Resources do not support a rule input - {rule}. Redefine the "
+                "register_view method in stead"
+            )
+
+        app.add_url_rule(
+            f"/{name}/",
+            view_func=cls.as_view(
+                name=f"{name}-group",
+                config=config,
+            ),
+        )
+        app.add_url_rule(
+            f"/{name}/<int:id>",
+            view_func=cls.as_view(
+                name=f"{name}-item",
+                config=config,
+            ),
+        )

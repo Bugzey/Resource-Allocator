@@ -3,27 +3,14 @@ Test for the db module
 """
 
 import unittest
-
-import sqlalchemy
+from unittest.mock import MagicMock, patch
 
 from resource_allocator.config import Config
 from resource_allocator.db import get_session
 
 
+@patch("resource_allocator.db.Config", spec=Config)
 class GetSessionTestCase(unittest.TestCase):
-    def setUp(self):
-        Config.reset_instance()
-        self.config = Config.from_environment()
-
-    def test_get_session(self):
-        sess = get_session()
-
-        self.assertTrue(isinstance(sess, sqlalchemy.orm.Session))
-
-        #   Test injection
-        self.assertIsNotNone(self.config._sess)
-        self.assertTrue(sess is self.config._sess)
-
-        #   New session is the same session
-        new_sess = get_session()
-        self.assertTrue(sess is new_sess)
+    def test_get_session(self, config: MagicMock):
+        _ = get_session()
+        config.get_session.assert_called()

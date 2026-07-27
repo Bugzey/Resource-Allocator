@@ -9,12 +9,11 @@ from resource_allocator.schemas.allocation import (
     AllocationAutomaticAllocationSchema,
 )
 from resource_allocator.managers.allocation import AllocationManager
-from resource_allocator.resources.base import BaseResource, CRUDResource
-from resource_allocator.managers.user import auth, role_required
+from resource_allocator.resources.base import BaseResource, CRUDResource, auth, role_required
 
 
 class AllocationResource(CRUDResource):
-    manager = AllocationManager
+    manager_class = AllocationManager
     request_schema = AllocationRequestSchema
     response_schema = AllocationResponseSchema
     read_roles_required = ["user", "admin"]
@@ -22,7 +21,7 @@ class AllocationResource(CRUDResource):
 
 
 class AutoAllocationResource(BaseResource):
-    manager = AllocationManager
+    manager_class = AllocationManager
     request_schema = AllocationAutomaticAllocationSchema
     response_schema = AllocationResponseSchema
     write_roles_required = ["admin"]

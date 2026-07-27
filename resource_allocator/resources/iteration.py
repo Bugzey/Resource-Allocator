@@ -10,7 +10,7 @@ from resource_allocator.resources.base import CRUDResource
 
 
 class IterationResource(CRUDResource):
-    manager = IterationManager
+    manager_class = IterationManager
     request_schema = IterationRequestSchema
     response_schema = IterationResponseSchema
     read_roles_required = ["user", "admin"]
