@@ -28,6 +28,7 @@ class TestBase:
         self.sess.rollback()
         metadata.drop_all(self.sess.bind)
         self.sess.close()
+        self.engine.dispose()
 
 
 class BaseManagerTestCase(TestBase, unittest.TestCase):

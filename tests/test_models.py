@@ -21,6 +21,9 @@ class ModelsTestCase(unittest.TestCase):
 
         Base.metadata.create_all(self.engine)
 
+    def tearDown(self):
+        self.engine.dispose()
+
     def test_create_all(self):
         with Session(self.engine) as sess:
             data = sess.scalars(select(UserModel)).all()

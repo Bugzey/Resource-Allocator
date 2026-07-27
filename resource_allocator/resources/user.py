@@ -100,7 +100,7 @@ class LoginUserResource(BaseResource):
         post: post request to log in a user
     """
     manager_class = AuthManager
-    request_schema = RegisterUserRequestSchema
+    request_schema = LoginUserRequestSchema
     response_schema = LoginUserResponseSchema
 
     @validate_schema(LoginUserRequestSchema)

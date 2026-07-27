@@ -286,7 +286,7 @@ class CRUDResource(BaseResource):
         if rule:
             raise ValueError(
                 f"CRUD Resources do not support a rule input - {rule}. Redefine the "
-                "register_method_view method in stead"
+                "register_view method in stead"
             )
 
         app.add_url_rule(

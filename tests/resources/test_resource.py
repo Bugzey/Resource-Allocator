@@ -35,7 +35,7 @@ class ResourceResourceTestCase(TestBase, unittest.TestCase):
     @classmethod
     def setUpClass(self):
         #   System
-        super().setUp(self)
+        super().setUp()
         CONFIG._engine = self.engine
         self.app = Flask(__name__)
         user.RegisterUserResource.register_method_view(

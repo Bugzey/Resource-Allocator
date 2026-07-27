@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import ClassVar
 
-from flask.views import MethodView
 import sqlalchemy as db
 from sqlalchemy.orm import Session
 
@@ -14,7 +13,7 @@ from resource_allocator.config import Config
 
 
 @dataclass
-class BaseManager(MethodView, ABC):
+class BaseManager(ABC):
     """
     Base manager class for standard CRUD-like operations on database tables. Child classes should
     define a class-level property "model" to point to the sqlalchemy ORM table to use
