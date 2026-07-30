@@ -1,137 +1,91 @@
 """
-Resource... resource test case - proxy for all BaseResource-derived objects
+Resource CRUD endpoint tests - proxy for all CRUD-derived objects
 """
 
 import unittest
-from unittest.mock import MagicMock, patch
 
-from flask import Flask
-
-from resource_allocator.config import Config
-from resource_allocator.resources import ResourceResource
-from resource_allocator.resources import user
 from resource_allocator.managers import (
     ResourceManager,
     ResourceGroupManager,
 )
+from resource_allocator.resources.resource import ResourceResource
 
-from tests.managers.test_base import TestBase
-
-
-#   Config
-CONFIG = MagicMock(
-    spec=Config,
-    SECRET="asdf1234" * 8,
-    TENANT_ID="TENANT_ID",
-    REDIRECT_URI="REDIRECT_URI",
-    ALLOWED_ORIGINS=["http://localhost"],
-    _engine=None,
-)
+from tests.resources.test_base import ResourceTestBase
 
 
-@unittest.skip("Ugh")
-@patch("resource_allocator.config.Config.get_instance", return_value=CONFIG)
-class ResourceResourceTestCase(TestBase, unittest.TestCase):
+class ResourceCRUDTestCase(ResourceTestBase, unittest.TestCase):
     @classmethod
-    def setUpClass(self):
-        #   System
-        super().setUp()
-        CONFIG._engine = self.engine
-        self.app = Flask(__name__)
-        user.RegisterUserResource.register_method_view(
-            self.app,
-            "register",
-            sess=self.sess,
-            config=CONFIG,
-        )
-        user.LoginUserResource.register_method_view(
-            self.app,
-            "login",
-            sess=self.sess,
-            config=CONFIG,
-        )
-        ResourceResource.register_method_view(self.app, "resources", sess=self.sess, config=CONFIG)
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.register(ResourceResource, "resources")
 
-        #   Data
-        with self.app.test_client() as client:
-            result = client.post("/register", json={
-                "email": "test@example.com",
-                "password": "password",
-                "first_name": "first_name",
-                "last_name": "last_name",
-            })
-            self.headers = {"Authorization": f"Bearer {result.json['token']}"}
+        #   User
+        resp = cls.register_user()
+        cls.auth = {"Authorization": f"Bearer {resp.json['token']}"}
 
-        self.group = ResourceGroupManager(self.sess).create_item({
+        cls.group = ResourceGroupManager(cls.config._sess).create_item({
             "name": "top_level",
             "is_top_level": True,
         })
-        self.resource = ResourceManager(self.sess).create_item({
+        cls.resource = ResourceManager(cls.config._sess).create_item({
             "name": "resource",
-            "top_resource_group_id": self.group.id,
+            "top_resource_group_id": cls.group.id,
         })
 
-    @classmethod
-    def tearDownClass(self):
-        super().tearDown(self)
+    def test_get_list(self):
+        with self.client.get("/resources/", headers=self.auth) as resp:
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json
+        self.assertIsInstance(data, list)
+        ids = [item["id"] for item in data]
+        self.assertIn(self.resource.id, ids)
 
-    def test_get(self, *args, **kwargs):
-        result = self.client.get(path=f"/resources/{self.resource.id}")
-        self.assertIsInstance(result, dict)
-        self.assertIn("name", result)
-        self.assertEqual(result["name"], "resource")
+    def test_get_single(self):
+        with self.client.get(f"/resources/{self.resource.id}", headers=self.auth) as resp:
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json
+        self.assertIsInstance(data, dict)
+        self.assertIn("name", data)
+        self.assertEqual(data["name"], "resource")
 
-    def test_post(self, *args, **kwargs):
-        with self.app.test_request_context(
-            headers=self.headers,
-            json={
-                "name": "new",
-                "top_resource_group_id": self.group.id,
-            },
-        ):
-            result = ResourceResource().post()
-        self.assertIsInstance(result, dict)
-        self.assertIn("name", result)
-        self.assertEqual(result["name"], "new")
+    def test_post(self):
+        with self.client.post("/resources/", headers=self.auth, json={
+            "name": "new",
+            "top_resource_group_id": self.group.id,
+        }) as resp:
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json
+        self.assertIsInstance(data, dict)
+        self.assertEqual(data["name"], "new")
 
-    def test_delete(self, *args, **kwargs):
-        with self.app.test_request_context(
-            headers=self.headers,
-            json={
-                "name": "deleted",
-                "top_resource_group_id": self.group.id,
-            },
-        ):
-            result = ResourceResource().post()
-            result = ResourceResource().delete(result["id"])
-        self.assertIsInstance(result, dict)
-        self.assertIn("name", result)
-        self.assertEqual(result["name"], "deleted")
-        self.assertIsNone(ResourceManager.list_single_item(result["id"]))
+    def test_put(self):
+        with self.client.post("/resources/", headers=self.auth, json={
+            "name": "to_change",
+            "top_resource_group_id": self.group.id,
+        }) as resp:
+            resource_id = resp.json["id"]
 
-    def test_put(self, *args, **kwargs):
-        with self.app.test_request_context(
-            headers=self.headers,
-            json={
-                "name": "to_change",
-                "top_resource_group_id": self.group.id,
-            },
-        ):
-            result = ResourceResource().post()
+        with self.client.put(f"/resources/{resource_id}", headers=self.auth, json={
+            "name": "changed",
+        }) as resp:
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json
 
-        self.assertIsInstance(result, dict)
-        self.assertIn("name", result)
-        self.assertEqual(result["name"], "to_change")
+        self.assertEqual(data["name"], "changed")
+        self.assertEqual(data["top_resource_group_id"], self.group.id)
 
-        with self.app.test_request_context(
-            headers=self.headers,
-            json={
-                "name": "changed",
-            },
-        ):
-            result = ResourceResource().put(result["id"])
+    def test_delete(self):
+        with self.client.post("/resources/", headers=self.auth, json={
+            "name": "to_delete",
+            "top_resource_group_id": self.group.id,
+        }) as resp:
+            resource_id = resp.json["id"]
 
-        self.assertIsInstance(result, dict)
-        self.assertIn("name", result)
-        self.assertEqual(result["name"], "changed")
-        self.assertEqual(result["top_resource_group_id"], self.group.id)
+        with self.client.delete(f"/resources/{resource_id}", headers=self.auth) as resp:
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json
+
+        self.assertEqual(data["name"], "to_delete")
+        self.assertIsNone(
+            ResourceManager(self.config._sess).list_single_item(resource_id)
+        )

@@ -3,94 +3,55 @@ Unit tests for resources.user
 """
 
 import unittest
-from unittest.mock import MagicMock, patch
 
-from flask import Flask
-
-from resource_allocator.config import Config
 from resource_allocator.resources import user
 
-from tests.managers.test_base import TestBase
+from tests.resources.test_base import ResourceTestBase
 
 
-CONFIG = MagicMock(
-    spec=Config,
-    SECRET="asdf1234" * 8,
-    TENANT_ID="TENANT_ID",
-    REDIRECT_URI="REDIRECT_URI",
-    ALLOWED_ORIGINS=["http://localhost"],
-    _engine=None,
-)
+class UserAuthTestCase(ResourceTestBase, unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.register(user.LoginUserAzureResource, "login_azure", rule="/login_azure/")
+
+    def test_register(self):
+        resp = self.register_user(email=f"user_{id(self)}_test_register@example.com")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_register_duplicate(self):
+        resp = self.register_user(email=f"dup_{id(self)}@example.com")
+        self.assertEqual(resp.status_code, 200)
+
+        resp = self.register_user(email=f"dup_{id(self)}@example.com")
+        self.assertNotEqual(resp.status_code, 200)
+
+    def test_login(self):
+        _ = self.register_user()  # might fail but that's ok
+        resp = self.login_user()
+
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json
+        self.assertIn("id", data)
+        self.assertIn("token", data)
 
 
-class RegisterUserTestCase(TestBase, unittest.TestCase):
-    def setUp(self):
-        super().setUp()
-        CONFIG.get_session.return_value = self.sess
-        self.app = Flask(__name__)
-        user.RegisterUserResource.register_view(
-            self.app,
-            config=CONFIG,
-            name="register",
-        )
-        user.LoginUserResource.register_view(
-            self.app,
-            config=CONFIG,
-            name="login",
-        )
-        user.LoginUserAzureResource.register_view(
-            self.app,
-            config=CONFIG,
-            name="login_azure",
-        )
+class UserTestCase(ResourceTestBase, unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.register(user.UserResource, "users")
 
-        self.register_data = {
-            "email": "test@example.com",
-            "password": "123123ABCabc.",
-            "first_name": "first_name",
-            "last_name": "last_name",
-        }
-        self.login_data = {
-            "email": "test@example.com",
-            "password": "123123ABCabc.",
-        }
+    def test_me(self):
+        _ = self.register_user()
+        resp = self.login_user()
+        token = resp.json["token"]
 
-    @patch("resource_allocator.schemas.user.get_session")
-    def test_register_user(self, get_session):
-        get_session.return_value = self.sess
-        with self.app.test_client() as client:
-            result = client.post("/register", json=self.register_data)
-            self.assertEqual(result._status_code, 200)
-            content = result.json
-
-        self.assertIsNotNone(content)
-        self.assertIn("id", content)
-        self.assertIn("token", content)
-
-    @patch("resource_allocator.schemas.user.get_session")
-    def test_register_user_exists(self, get_session):
-        get_session.return_value = self.sess
-        with self.app.test_client() as client:
-            result = client.post("/register", json=self.register_data)
-            self.assertEqual(result._status_code, 200)
-
-            result = client.post("/register", json=self.register_data)
-            self.assertNotEqual(result._status_code, 200)
-            content = b"".join(item for item in result.response)
-
-        self.assertIsNotNone(content)
-        self.assertIn(b"already registered", content)
-
-    @patch("resource_allocator.schemas.user.get_session")
-    def test_login(self, get_session):
-        get_session.return_value = self.sess
-        with self.app.test_client() as client:
-            result = client.post("/register", json=self.register_data)
-            self.assertEqual(result._status_code, 200)
-            result = client.post("/login", json=self.login_data)
-            self.assertEqual(result._status_code, 200)
-            content = result.json
-
-        self.assertIsNotNone(content)
-        self.assertIn("id", content)
-        self.assertIn("token", content)
+        with self.client.get(
+            "/users/me",
+            headers={"Authorization": f"Bearer {token}"}
+        ) as resp:
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("id", resp.json)
+            self.assertIn("email", resp.json)
+            self.assertFalse(resp.json["is_external"])

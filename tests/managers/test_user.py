@@ -53,6 +53,7 @@ class AuthManagerTestCase(TestBase, unittest.TestCase):
         self.assertEqual(users[0].email, self.data["email"])
         self.assertNotEqual(users[0].password_hash, self.data["password"])
         self.assertIsNotNone(users[0].role_id)
+        self.assertFalse(users[0].is_external)
 
         #   First user is admin
         result = self.manager.register({**self.data, "email": "test2@example.com"})

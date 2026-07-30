@@ -51,6 +51,7 @@ class AuthManager(BaseManager):
 
         role_id = self.sess.query(RoleModel.id).where(RoleModel.role == role).scalar()
         data["role_id"] = role_id
+        data["is_external"] = False
 
         user = UserModel(**data)
         self.sess.add(user)
