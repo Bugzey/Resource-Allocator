@@ -40,17 +40,17 @@ class UserResource(CRUDResource):
         return super().get(id)
 
     @classmethod
-    def register_method_view(
+    def register_view(
         cls,
         app: Flask | Blueprint,
-        name: str,
         config: Config,
+        name: str,
         rule: str | None = None,
     ) -> None:
         """
         Register a CRUD resource and add an additional /users/me endpoint"
         """
-        super().register_method_view(app, name, config=config)
+        super().register_view(app, config, name=name)
         app.add_url_rule(
             f"/{name}/me",
             view_func=cls.as_view(
