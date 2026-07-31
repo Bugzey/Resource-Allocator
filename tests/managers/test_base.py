@@ -106,7 +106,7 @@ class OrderByTestCase(unittest.TestCase):
 
 class OrderByConfigTestCase(unittest.TestCase):
     def test_from_key_value(self):
-        result = OrderByConfig.from_key_value({"order_by": ["some_field", "-other_field"]})
+        result = OrderByConfig.from_request_dict({"order_by": ["some_field", "-other_field"]})
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0].field_name, "some_field")
         self.assertTrue(result[0].ascending)

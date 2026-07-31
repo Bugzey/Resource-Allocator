@@ -131,7 +131,7 @@ class OrderByConfig(_ContainerBase):
     items: list[OrderBy]
 
     @classmethod
-    def from_key_value(cls, request_dict: dict) -> OrderByConfig:
+    def from_request_dict(cls, request_dict: dict) -> OrderByConfig:
         value = request_dict.get("order_by", [])
         items = [OrderBy(item) for item in value]
         return cls(items)
