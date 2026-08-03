@@ -31,14 +31,66 @@ class ResourceCRUDTestCase(ResourceTestBase, unittest.TestCase):
             "name": "resource",
             "top_resource_group_id": cls.group.id,
         })
+        cls.resource = ResourceManager(cls.config._sess).create_item({
+            "name": "other",
+            "top_resource_group_id": cls.group.id,
+        })
 
     def test_get_list(self):
-        with self.client.get("/resources/", headers=self.auth) as resp:
-            self.assertEqual(resp.status_code, 200)
-            data = resp.json
-        self.assertIsInstance(data, list)
-        ids = [item["id"] for item in data]
-        self.assertIn(self.resource.id, ids)
+        with self.subTest("Single with no arguments"):
+            with self.client.get("/resources/", headers=self.auth) as resp:
+                self.assertEqual(resp.status_code, 200)
+                data = resp.json
+            self.assertIsInstance(data, list)
+            ids = [item["id"] for item in data]
+            self.assertIn(self.resource.id, ids)
+
+        with self.subTest("Multiple with filter - eq"):
+            with self.client.get(
+                "/resources/",
+                headers=self.auth,
+                query_string={
+                    "filter[name]": "resource",
+                },
+            ) as resp:
+                self.assertEqual(resp.status_code, 200)
+                data = resp.json
+            self.assertIsInstance(data, list)
+            self.assertEqual(len(data), 1)
+            self.assertEqual(data[0]["name"], "resource")
+
+        with self.subTest("Multiple with order by"):
+            with self.client.get(
+                "/resources/",
+                headers=self.auth,
+                query_string={
+                    "order_by": ["-id", "name"],
+                    "limit": 1,
+                },
+            ) as resp:
+                self.assertEqual(resp.status_code, 200)
+                data = resp.json
+            self.assertIsInstance(data, list)
+            self.assertEqual(len(data), 1)
+            self.assertEqual(data[0]["id"], "other")
+
+            pass
+
+        with self.subTest("Multiple with pagination"):
+            with self.client.get(
+                "/resources/",
+                headers=self.auth,
+                query_string={
+                    "limit": 1,
+                    "page": 2,
+                    "order_by": ["id"],
+                },
+            ) as resp:
+                self.assertEqual(resp.status_code, 200)
+                data = resp.json
+            self.assertIsInstance(data, list)
+            self.assertEqual(len(data), 1)
+            self.assertEqual(data[0]["id"], "other")
 
     def test_get_single(self):
         with self.client.get(f"/resources/{self.resource.id}", headers=self.auth) as resp:
