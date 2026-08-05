@@ -174,6 +174,37 @@ Some scripts accept ordered command-line arguments that are described in the beg
 file.
 
 
+### Filtering, Sorting and Pagination
+
+All general endpoints in the form `/<item>/` support **filtering, sorting and pagination** to reduce
+server load. This is achieved via **query parameters**:
+
+* `limit` - the number of items to return in a single page (min=1, max=200, default=200)
+* `page` - the page number to return when there are more than `limit` items returned (min=1)
+* `order_by` - field name to order by; use `-<field_name>` for descending order. Multiple `order_by`
+  elements can be added separately to the query string
+* `filter[<field_name>]` - filter by exact match by a field name. The value provided is an exact
+  match. Multiple filters provided in this form are combined in an `AND` operation. `OR` is not
+  supported
+* `filter[<field_name>][<operation>]` - filter using the given **operation** on the value (or
+  comma-separated values) provided. `<operation>` may be one of:
+
+    1. `eq` - equals
+    1. `ne` - not equals
+    1. `lt` - less than
+    1. `le` - less or equal
+    1. `gt` - greater than
+    1. `ge` - greater or equal
+    1. `isin` - equals one of the provided comma-separated values
+    1. `notin` - does not equal any of the provided comma-separated values
+    1. `like` - partial string match to the provided value (using SQL-style `%` placeholders)
+
+Example calls:
+
+* `GET
+  /resources/?limit=10&page=2&order_by=name&order_by=-id&filter[top_resource_group_id]=1&filter[name][notin]=something,other`
+
+
 ### CLI Client
 
 A command-line interface (CLI) client is available for the server in the
