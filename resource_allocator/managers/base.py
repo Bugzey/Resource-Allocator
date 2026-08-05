@@ -133,6 +133,8 @@ class OrderByConfig(_ContainerBase):
     @classmethod
     def from_request_dict(cls, request_dict: dict) -> OrderByConfig:
         value = request_dict.get("order_by", [])
+        if isinstance(value, str):
+            value = [value]
         items = [OrderBy(item) for item in value]
         return cls(items)
 

@@ -199,7 +199,10 @@ class CRUDResource(BaseResource):
             return self.response_schema().dump(result)
 
         #   Query string validation
-        query = QuerySchema().load(request.args.to_dict())
+        query_errors = QuerySchema(model=self.manager.model).validate(request.args.to_dict())
+        if query_errors:
+            abort(400, f"Data validation errors: {query_errors}")
+        query = QuerySchema(model=self.manager.model).load(request.args.to_dict())
         result = self.manager.list_all_items(
             filters=query["filters"],
             order_by=query["order_by"],

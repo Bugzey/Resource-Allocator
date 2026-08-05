@@ -2,7 +2,16 @@
 Base schema that includes regular fields
 """
 
-from marshmallow import Schema, EXCLUDE, fields, post_load, pre_load, validate
+from marshmallow import (
+    EXCLUDE,
+    Schema,
+    fields,
+    post_load,
+    pre_load,
+    validate,
+    validates,
+    ValidationError,
+)
 from marshmallow.fields import (
     DateTime,
     Integer,
@@ -10,6 +19,7 @@ from marshmallow.fields import (
 )
 
 from resource_allocator.managers.base import FilterConfig, OrderByConfig
+from resource_allocator.models import Base
 
 
 class BaseRequestSchema(Schema):
@@ -42,6 +52,12 @@ class QuerySchema(Schema):
     """
     Schema to validate a query string for the shared get endpoint
     """
+    model: Base
+
+    def __init__(self, *args, model: Base, **kwargs):
+        self.model = model
+        super().__init__(*args, **kwargs)
+
     class Meta(Schema.Meta):
         unknown = EXCLUDE
 
@@ -62,8 +78,28 @@ class QuerySchema(Schema):
     @pre_load
     def get_order_by(self, data: dict, *args, **kwargs):
         """
-        Parse order by
+        Parse order by that should be a list of items
         """
         order_by = OrderByConfig.from_request_dict(data)
         data["order_by"] = order_by
         return data
+
+    @validates("filters")
+    def filter_cols_exist(self, filters: FilterConfig, *args, **kwargs):
+        cols = self.model.__table__.columns
+        invalid_cols = [item.field_name for item in filters if item.field_name not in cols]
+        if invalid_cols:
+            raise ValidationError(
+                f"Filter columns do not exist in model: "
+                f"{', '.join(invalid_cols)}"
+            )
+
+    @validates("order_by")
+    def order_by_cols_exist(self, order_by: OrderByConfig, *args, **kwargs):
+        cols = self.model.__table__.columns
+        invalid_cols = [item.field_name for item in order_by if item.field_name not in cols]
+        if invalid_cols:
+            raise ValidationError(
+                f"Order by columns do not exist in model: "
+                f"{', '.join(invalid_cols)}"
+            )
