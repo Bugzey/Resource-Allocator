@@ -71,7 +71,10 @@ class QuerySchema(Schema):
         """
         Parse a query string of the form filter[field]=12&filter[field][operation]=a,b
         """
-        filters = FilterConfig.from_request_dict(data)
+        try:
+            filters = FilterConfig.from_request_dict(data)
+        except ValueError as e:
+            raise ValidationError(e.args[0], field_name="filters")
         data["filters"] = filters
         return data
 
@@ -80,7 +83,11 @@ class QuerySchema(Schema):
         """
         Parse order by that should be a list of items
         """
-        order_by = OrderByConfig.from_request_dict(data)
+        try:
+            order_by = OrderByConfig.from_request_dict(data)
+        except ValueError as e:
+            raise ValidationError(e.args[0], field_name="order_by")
+
         data["order_by"] = order_by
         return data
 

@@ -49,3 +49,11 @@ class QuerySchemaTestCase(unittest.TestCase):
         self.assertIn("order_by", result)
         self.assertIn("Order by columns do not exist", result["order_by"][0])
         self.assertIn("non_existent", result["order_by"][0])
+
+    def test_failed_get_filters(self):
+        result = self.schema.validate({
+            "filters": "bla",
+            "order_by": 123,
+        })
+        self.assertIn("filters", result)
+        self.assertIn("Invalid filter format", result["filters"][0])

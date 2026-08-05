@@ -106,7 +106,7 @@ class FilterConfig(_ContainerBase):
                 cur_result = Filter.from_key_value(key, value)
                 result.append(cur_result)
             except ValueError as exc:
-                errors.append(exc)
+                errors.append(exc.args[0])
 
         if errors:
             raise ValueError(f"Error parsing filters: {len(errors)}: {errors}")
@@ -132,7 +132,7 @@ class OrderByConfig(_ContainerBase):
 
     @classmethod
     def from_request_dict(cls, request_dict: dict) -> OrderByConfig:
-        value = request_dict.get("order_by", [])
+        value = request_dict.get("order_by", []) or []
         if isinstance(value, str):
             value = [value]
         items = [OrderBy(item) for item in value]
