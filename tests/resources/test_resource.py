@@ -27,21 +27,83 @@ class ResourceCRUDTestCase(ResourceTestBase, unittest.TestCase):
             "name": "top_level",
             "is_top_level": True,
         })
-        cls.resource = ResourceManager(cls.config._sess).create_item({
+        cls.resource_1 = ResourceManager(cls.config._sess).create_item({
             "name": "resource",
             "top_resource_group_id": cls.group.id,
         })
+        cls.resource_2 = ResourceManager(cls.config._sess).create_item({
+            "name": "other",
+            "top_resource_group_id": cls.group.id,
+        })
 
-    def test_get_list(self):
+    def test_get_list_no_args(self):
         with self.client.get("/resources/", headers=self.auth) as resp:
             self.assertEqual(resp.status_code, 200)
             data = resp.json
         self.assertIsInstance(data, list)
         ids = [item["id"] for item in data]
-        self.assertIn(self.resource.id, ids)
+        self.assertIn(self.resource_1.id, ids)
+
+    def test_get_list_filter(self):
+        with self.client.get(
+            "/resources/",
+            headers=self.auth,
+            query_string={
+                "filter[name]": "resource",
+            },
+        ) as resp:
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["name"], "resource")
+
+    def test_get_list_multiple_order_by(self):
+        with self.client.get(
+            "/resources/",
+            headers=self.auth,
+            query_string={
+                "order_by": ["-id", "name"],
+                "limit": 1,
+            },
+        ) as resp:
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["id"], 2)
+        self.assertEqual(data[0]["name"], "other")
+
+    def test_get_list_pagination(self):
+        with self.client.get(
+            "/resources/",
+            headers=self.auth,
+            query_string={
+                "limit": 1,
+                "page": 2,
+                "order_by": ["id"],
+            },
+        ) as resp:
+            self.assertEqual(resp.status_code, 200)
+            data = resp.json
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["id"], 2)
+        self.assertEqual(data[0]["name"], "other")
+
+    def test_get_list_invalid_filters_order_by(self):
+        with self.client.get(
+            "/resources/",
+            headers=self.auth,
+            query_string={
+                "filter[invalid_col]": 12,
+                "order_by": ["-invalid_col"],
+            },
+        ) as resp:
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_single(self):
-        with self.client.get(f"/resources/{self.resource.id}", headers=self.auth) as resp:
+        with self.client.get(f"/resources/{self.resource_1.id}", headers=self.auth) as resp:
             self.assertEqual(resp.status_code, 200)
             data = resp.json
         self.assertIsInstance(data, dict)

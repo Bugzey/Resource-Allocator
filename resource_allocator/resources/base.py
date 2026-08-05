@@ -15,6 +15,7 @@ from resource_allocator.db import get_session
 from resource_allocator.config import Config
 from resource_allocator.models import UserModel, RoleModel, RoleEnum
 from resource_allocator.managers.base import BaseManager
+from resource_allocator.schemas.base import QuerySchema
 from resource_allocator.utils.auth import parse_token
 
 
@@ -90,7 +91,10 @@ class BaseResource(ABC, MethodView):
 
     def __post_init__(self):
         #   Instantiate the manager - call config.get_session() to get the current session
-        self.manager = self.manager_class(sess=self.config.get_session(), config=self.config)
+        self.manager: BaseManager = self.manager_class(
+            sess=self.config.get_session(),
+            config=self.config,
+        )
 
     @property
     @abstractmethod
@@ -190,12 +194,22 @@ class CRUDResource(BaseResource):
         """
         #   Can't use decorators with arguments in base classes before the properties are redefined
         #   in child classes
-        if id is None:
-            result = self.manager.list_all_items()
-            return self.response_schema().dump(result, many=True)
+        if id is not None:
+            result = self.manager.list_single_item(id)
+            return self.response_schema().dump(result)
 
-        result = self.manager.list_single_item(id)
-        return self.response_schema().dump(result)
+        #   Query string validation
+        query_errors = QuerySchema(model=self.manager.model).validate(request.args.to_dict())
+        if query_errors:
+            abort(400, f"Data validation errors: {query_errors}")
+        query = QuerySchema(model=self.manager.model).load(request.args.to_dict())
+        result = self.manager.list_all_items(
+            filters=query["filters"],
+            order_by=query["order_by"],
+            limit=query["limit"],
+            page=query["page"],
+        )
+        return self.response_schema().dump(result, many=True)
 
     @auth.login_required
     @BaseResource.check_write
