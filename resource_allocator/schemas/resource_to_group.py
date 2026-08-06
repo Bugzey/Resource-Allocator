@@ -14,12 +14,12 @@ class ResourceToGroupRequestSchema(BaseRequestSchema):
     resource_group_id = fields.Integer(required=True)
 
     @validates("resource_id")
-    def validate_resource_id(self, value):
+    def validate_resource_id(self, value, data_key):
         if not get_session().get(ResourceModel, value):
             raise ValidationError(f"Invalid resource_id: {value}")
 
     @validates("resource_group_id")
-    def validate_resource_group_id(self, value):
+    def validate_resource_group_id(self, value, data_key):
         if not get_session().get(ResourceGroupModel, value):
             raise ValidationError(f"Invalid resource_group_id: {value}")
 

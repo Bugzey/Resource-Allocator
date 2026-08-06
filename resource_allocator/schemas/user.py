@@ -19,7 +19,7 @@ class RegisterUserRequestSchema(BaseRequestSchema):
     last_name = fields.String(required=True)
 
     @validates("email")
-    def validate_email(self, value):
+    def validate_email(self, value, data_key: str):
         sess = get_session()
         exists = sess.execute(
             select(UserModel.email)
@@ -29,7 +29,7 @@ class RegisterUserRequestSchema(BaseRequestSchema):
             raise ValidationError(f"Email {value} already registered")
 
     @validates("password")
-    def validate_password(self, value):
+    def validate_password(self, value, data_key: str):
         ok = True
         ok = ok and len(value) >= 6
         ok = ok and re.search(r"[a-z]", value)
@@ -77,7 +77,7 @@ class UserRequestSchema(BaseResponseSchema):
         return self._user
 
     @validates("role_id")
-    def validate_role_id(self, value):
+    def validate_role_id(self, value, data_key):
         sess = get_session()
         role = sess.execute(
             select(RoleModel)
