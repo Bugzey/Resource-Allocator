@@ -29,22 +29,22 @@ class RequestRequestSchema(BaseRequestSchema):
     requested_resource_group_id = fields.Integer(allow_none=True)
 
     @validates("iteration_id")
-    def validate_iteration_id(self, value):
+    def validate_iteration_id(self, value, data_key):
         if not get_session().get(IterationModel, value):
             raise ValidationError(f"Iteration {value} does not exist")
 
     @validates("user_id")
-    def validate_user_id(self, value):
+    def validate_user_id(self, value, data_key):
         if not get_session().get(UserModel, value):
             raise ValidationError(f"User {value} does not exist")
 
     @validates("requested_resource_id")
-    def validate_resource_id(self, value):
+    def validate_resource_id(self, value, data_key):
         if value and not get_session().get(ResourceModel, value):
             raise ValidationError(f"Resource {value} does not exist")
 
     @validates("requested_resource_group_id")
-    def validate_resource_group_id(self, value):
+    def validate_resource_group_id(self, value, data_key):
         if value and not get_session().get(ResourceGroupModel, value):
             raise ValidationError(f"Resource {value} does not exist")
 

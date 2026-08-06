@@ -21,23 +21,23 @@ class AllocationRequestSchema(BaseRequestSchema):
     points = fields.Integer()
 
     @validates("iteration_id")
-    def validate_iteration_id(self, value):
+    def validate_iteration_id(self, value, data_key):
         iteration = get_session().get(IterationModel, value)
         if not iteration:
             raise ValidationError(f"Invalid iteration: {value}")
 
     @validates("user_id")
-    def validate_user_id(self, value):
+    def validate_user_id(self, value, data_key):
         if not get_session().get(UserModel, value):
             raise ValidationError(f"Invalid user: {value}")
 
     @validates("source_request_id")
-    def validate_source_request_id(self, value):
+    def validate_source_request_id(self, value, data_key):
         if not get_session().get(RequestModel, value):
             raise ValidationError(f"Invalid request: {value}")
 
     @validates("allocated_resource_id")
-    def validate_allocated_resource_id(self, value):
+    def validate_allocated_resource_id(self, value, data_key):
         if not get_session().get(ResourceModel, value):
             raise ValidationError(f"Invalid resource: {value}")
 
@@ -85,13 +85,13 @@ class AllocationAutomaticAllocationSchema(BaseRequestSchema):
     request_id = fields.Integer()
 
     @validates("iteration_id")
-    def validate_iteration_id(self, value):
+    def validate_iteration_id(self, value, data_key):
         iteration = get_session().get(IterationModel, value)
         if not iteration:
             raise ValidationError(f"Invalid iteration: {value}")
 
     @validates("request_id")
-    def validate_request_id(self, value):
+    def validate_request_id(self, value, data_key):
         request = get_session().get(RequestModel, value)
         if not request:
             raise ValidationError(f"Invalid request_id. {value}")

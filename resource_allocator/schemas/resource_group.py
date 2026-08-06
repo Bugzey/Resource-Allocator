@@ -21,7 +21,7 @@ class ResourceGroupRequestSchema(BaseRequestSchema):
     image_properties_id = fields.Integer()
 
     @validates("name")
-    def validate_name(self, value):
+    def validate_name(self, value, data_key):
         if (
             get_session()
             .query(ResourceGroupModel.id)
@@ -31,18 +31,18 @@ class ResourceGroupRequestSchema(BaseRequestSchema):
             raise ValidationError(f"Name: {value} already exists")
 
     @validates("top_resource_group_id")
-    def validate_top_resource_group_id(self, value):
+    def validate_top_resource_group_id(self, value, data_key):
         if not get_session().get(ResourceGroupModel, value):
             raise ValidationError(f"Invalid top_resource_group_id: {value}")
 
     @validates("image_id")
-    def validate_image_id(self, value):
+    def validate_image_id(self, value, data_key):
         sess = get_session()
         if not sess.get(ImageModel, value):
             raise ValidationError(f"Invalid image_id: {value}")
 
     @validates("image_properties_id")
-    def validate_image_properties_id(self, value):
+    def validate_image_properties_id(self, value, data_key):
         sess = get_session()
         if not sess.get(ImagePropertiesModel, value):
             raise ValidationError(f"Invalid image_properties_id: {value}")
