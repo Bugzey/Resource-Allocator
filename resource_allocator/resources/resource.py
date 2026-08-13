@@ -33,12 +33,13 @@ class ResourceGroupResource(CRUDResource):
     write_roles_required = ["admin"]
 
     @auth.login_required
-    def post(self):
-        data = super().post()
+    @CRUDResource.validate_schema()
+    def post(self, data: dict | None = None):
+        data = super().post(data)
         if isinstance(data, tuple) or not data["is_top_level"]:
             return data
 
         id = data["id"]
         data["top_resource_group_id"] = id
         result = self.manager.modify_item(id, {"top_resource_group_id": id})
-        return self.response_schema().dump(result)
+        return result

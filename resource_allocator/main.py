@@ -56,13 +56,7 @@ def register_routes(app: Flask, config: Config) -> Flask:
         app,
         config,
         "allocation_auto_allocation",
-        rule="/allocation/auto_allocation",
-    )
-    AutoAllocationResource.register_view(
-        app,
-        config,
-        "auto_allocation",
-        rule="/auto_allocation",
+        rule="/allocation/automatic_allocation",
     )
     RequestApproveResource.register_view(
         app,

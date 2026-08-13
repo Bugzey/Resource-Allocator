@@ -21,7 +21,11 @@ class ResourceCRUDTestCase(ResourceTestBase, unittest.TestCase):
 
         #   User
         resp = cls.register_user()
-        cls.auth = {"Authorization": f"Bearer {resp.json['token']}"}
+        cls.auth = {
+            "Authorization": f"Bearer {resp.json['token']}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
 
         cls.group = ResourceGroupManager(cls.config._sess).create_item({
             "name": "top_level",
