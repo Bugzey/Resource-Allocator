@@ -8,9 +8,11 @@ from unittest.mock import patch, MagicMock
 
 import jwt
 from flask import Flask
+from flask.views import MethodView
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
+from marshmallow import fields, Schema
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
@@ -18,6 +20,7 @@ from resource_allocator.config import Config
 from resource_allocator.models import metadata, populate_enums
 from resource_allocator.resources import user
 from resource_allocator.resources.base import (
+    BaseResource,
     verify_token,
 )
 
@@ -110,6 +113,53 @@ class ResourceTestBase:
             },
         ) as resp:
             return resp
+
+
+#   Static Method validation
+class RequestSchema(Schema):
+    id = fields.Integer(required=True)
+    value = fields.String(required=True)
+
+
+class ResponseSchema(Schema):
+    ok = fields.Boolean()
+
+
+class SomeClass(MethodView):
+    request_schema = RequestSchema
+    response_schema = ResponseSchema
+
+    @BaseResource.validate_schema()
+    def post(self, data: dict | None = None):
+        data = data or {}
+        return {"ok": "id" in data and "value" in data}
+
+
+class BaseResourceTestCase(unittest.TestCase):
+    """
+    Tests for static methods and registration
+    """
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.app.add_url_rule("/", view_func=SomeClass.as_view("some_fun"))
+
+    def test_validate_built_in_ok(self):
+        with self.app.test_client() as client:
+            response = client.post("/", json={"id": 12, "value": "value"})
+            self.assertEqual(response.status_code, 200)
+            result = response.json
+
+        self.assertIsInstance(result, dict)
+        self.assertTrue(result.get("ok", False))
+
+    def test_validate_built_in_bad_input(self):
+        with self.app.test_client() as client:
+            response = client.post("/", json={"invalid": "data"})
+            self.assertEqual(response.status_code, 400)
+
+        content = "".join([item.decode() for item in response.response])
+        self.assertIn("invalid", content)
+        self.assertIn("id", content)
 
 
 @patch(

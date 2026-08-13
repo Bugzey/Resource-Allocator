@@ -2,8 +2,6 @@
 Resources for allocation objects
 """
 
-from flask import request
-
 from resource_allocator.schemas.allocation import (
     AllocationRequestSchema, AllocationResponseSchema,
     AllocationAutomaticAllocationSchema,
@@ -28,9 +26,9 @@ class AutoAllocationResource(BaseResource):
 
     @auth.login_required
     @role_required("admin")
-    def post(self) -> dict:
-        data = request.get_json()
+    @BaseResource.validate_schema()
+    def post(self, data: dict | None = None) -> dict:
         result = self.manager.automatic_allocation(
             AllocationAutomaticAllocationSchema().load(data)
         )
-        return self.response_schema().dump(result, many=True)
+        return result

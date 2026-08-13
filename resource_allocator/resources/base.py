@@ -85,6 +85,14 @@ def role_required(role_name: str) -> Callable:
     return wrapper
 
 
+class _MISSING_SCHEMA:
+    """
+    Placeholder schema to indicate that the default schema should be validated
+    """
+    def __bool__(self) -> bool:
+        return False
+
+
 @dataclass
 class BaseResource(ABC, MethodView):
     config: Config
@@ -151,6 +159,57 @@ class BaseResource(ABC, MethodView):
 
         return inner
 
+    @staticmethod
+    def validate_schema(
+        request_schema: Schema | _MISSING_SCHEMA | None = _MISSING_SCHEMA,
+        request_kwargs: dict | None = None,
+        response_schema: Schema | _MISSING_SCHEMA | None = _MISSING_SCHEMA,
+        response_kwargs: dict | None = None,
+    ) -> Callable:
+        """
+        Decorator to validate input and output schemas, raising 400 on request error or 500 on
+        response error. Both schemas can be overwritten
+
+        Args:
+            request_schema: alternative request schema. Default: _MISSING_SCHEMA
+            response_schema: alternative response schema. Default: _MISSING_SCHEMA
+        """
+        def inner(fun):
+            @wraps(fun)
+            def wrapped(self, *args, **kwargs):
+                self: "BaseResource"
+
+                #   Request validation
+                data = None
+                if request_schema is not None:
+                    in_schema = (
+                        request_schema
+                        if request_schema is not _MISSING_SCHEMA
+                        else self.request_schema
+                    )
+                    data = request.get_json()
+                    errors = in_schema().validate(data, **(request_kwargs or {}))
+                    if errors:
+                        abort(400, f"Data validation errors: {errors}")
+
+                #   Execute the function
+                kwargs["data"] = data
+                result = fun(self, *args, **kwargs)
+
+                #   Response validation
+                if response_schema is None:
+                    return result
+
+                out_schema = (
+                    response_schema
+                    if response_schema is not _MISSING_SCHEMA
+                    else self.response_schema
+                )
+                many = isinstance(result, list)
+                return out_schema(many=many).dump(result, **(response_kwargs or {}))
+            return wrapped
+        return inner
+
     @classmethod
     def register_view(
         cls,
@@ -181,7 +240,8 @@ class BaseResource(ABC, MethodView):
 class CRUDResource(BaseResource):
     @auth.login_required
     @BaseResource.check_read
-    def get(self, id: int | None = None) -> dict | list:
+    @BaseResource.validate_schema(request_schema=None)
+    def get(self, id: int | None = None, **kwargs) -> dict | list:
         """
         Get requrest to list a single object or multiple objects
 
@@ -196,12 +256,13 @@ class CRUDResource(BaseResource):
         #   in child classes
         if id is not None:
             result = self.manager.list_single_item(id)
-            return self.response_schema().dump(result)
+            return result
 
         #   Query string validation
         query_errors = QuerySchema(model=self.manager.model).validate(request.args.to_dict())
         if query_errors:
             abort(400, f"Data validation errors: {query_errors}")
+
         query = QuerySchema(model=self.manager.model).load(request.args.to_dict())
         result = self.manager.list_all_items(
             filters=query["filters"],
@@ -209,11 +270,12 @@ class CRUDResource(BaseResource):
             limit=query["limit"],
             page=query["page"],
         )
-        return self.response_schema().dump(result, many=True)
+        return result
 
     @auth.login_required
     @BaseResource.check_write
-    def post(self) -> dict:
+    @BaseResource.validate_schema()
+    def post(self, data: dict | None = None) -> dict:
         """
         Create an item using the provided fields in the request json
 
@@ -223,19 +285,13 @@ class CRUDResource(BaseResource):
         Returns:
             dict: dictionary of the attributes of the created object
         """
-        data = request.get_json()
-
-        #   Can't validate the schema with a decorator while using a base resource
-        errors = self.request_schema().validate(data)
-        if errors:
-            abort(400, f"Data validation errors: {errors}")
-
         result = self.manager.create_item(self.request_schema().load(data))
-        return self.response_schema().dump(result)
+        return result
 
     @auth.login_required
     @BaseResource.check_write
-    def delete(self, id: int | None = None):
+    @BaseResource.validate_schema(request_schema=None)
+    def delete(self, id: int | None = None, data: dict | None = None):
         """
         Issue a delete statement on a resource
 
@@ -249,11 +305,16 @@ class CRUDResource(BaseResource):
             abort(400, "Delete action requires an object ID")
 
         result = self.manager.delete_item(id)
-        return self.response_schema().dump(result)
+        return result
 
     @auth.login_required
     @BaseResource.check_write
     def put(self, id: int | None = None):
+        """
+        Modify an item with partial input
+
+        Note: This does NOT use BaseResource.validate_schema due to the partial logic
+        """
         if id is None:
             abort(400, "Put action requires an object ID")
 

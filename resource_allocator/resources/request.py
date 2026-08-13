@@ -26,8 +26,9 @@ class RequestApproveResource(BaseResource):
 
     @auth.login_required
     @role_required("admin")
-    def post(self, id: int) -> dict:
-        return self.response_schema().dump(self.manager.approve(id))
+    @BaseResource.validate_schema(request_schema=None)
+    def post(self, id: int, data: dict | None = None) -> dict:
+        return self.manager.approve(id)
 
 
 class RequestDeclineResource(BaseResource):
@@ -36,5 +37,6 @@ class RequestDeclineResource(BaseResource):
 
     @auth.login_required
     @role_required("admin")
-    def post(self, id: int) -> dict:
-        return self.response_schema().dump(self.manager.decline(id))
+    @BaseResource.validate_schema(request_schema=None)
+    def post(self, id: int, data: dict | None = None) -> dict:
+        return self.manager.decline(id)
