@@ -165,13 +165,16 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         self.allocation_manager = AllocationManager(self.sess)
 
     def test_create_item(self):
-        result = self.allocation_manager.create_item(data=dict(
-            iteration_id=self.iteration.id,
-            date=dt.date(2020, 1, 1),
-            user_id=self.users[0].id,
-            allocated_resource_id=self.resources[0].id,
-            source_request_id=self.requests[0].id,
-        ))
+        result = self.allocation_manager.create_item(
+            data=dict(
+                iteration_id=self.iteration.id,
+                date=dt.date(2020, 1, 1),
+                user_id=self.users[0].id,
+                user_for_id=self.users[0].id,
+                allocated_resource_id=self.resources[0].id,
+                source_request_id=self.requests[0].id,
+            )
+        )
         self.assertIsInstance(result, AllocationModel)
 
         #   Check that the source request is completed
@@ -179,13 +182,16 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         self.assertEqual(request.request_status.request_status, RequestStatusEnum.completed.value)
 
     def test_delete_item(self):
-        result = self.allocation_manager.create_item(data=dict(
-            iteration_id=self.iteration.id,
-            date=dt.date(2020, 1, 1),
-            user_id=self.users[0].id,
-            allocated_resource_id=self.resources[0].id,
-            source_request_id=self.requests[0].id,
-        ))
+        result = self.allocation_manager.create_item(
+            data=dict(
+                iteration_id=self.iteration.id,
+                date=dt.date(2020, 1, 1),
+                user_id=self.users[0].id,
+                user_for_id=self.users[0].id,
+                allocated_resource_id=self.resources[0].id,
+                source_request_id=self.requests[0].id,
+            )
+        )
         self.assertIsInstance(result, AllocationModel)
 
         #   Delete the allocation
@@ -230,6 +236,14 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         self.assertTrue(isinstance(new, list))
         self.assertEqual(len(new), 0)
         self.assertEqual(len(self.allocation_manager.list_all_items()), len(result))
+
+    def test_automatic_allocation_with_previous_manual_allocation(self):
+        """
+        An allocation was created before an automatic allocation run. The process should decline any
+        active requests and otherwise ignore the allocated seat
+        """
+        #   TODO
+        pass
 
     def test_request_resource_after_allocation(self):
         _ = self.allocation_manager.automatic_allocation(self.allocation_args)

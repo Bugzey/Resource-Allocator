@@ -221,8 +221,8 @@ class AllocationManager(BaseManager):
                 self.create_item({
                     **item,
                     "date": date,
-                    "iteration_id":
-                    iteration.id
+                    "iteration_id": iteration.id,
+                    "user_for_id": item["user_id"],
                 }) for item in allocation_list
             ])
 
