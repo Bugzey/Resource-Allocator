@@ -63,6 +63,7 @@ SECRET              |Long string to use as an application secret for encoding an
 SERVER_NAME         |Full URL of the server where `resource_allocator` is deployed                           |-
 **Deployment**      |                                                                                        |
 CONTAINER_IMAGE     |Name of the container image when building Docker                                        |`resource_allocator:latest`
+NUM_WORKERS         |Number of `gunicorn` workers to start when running from `startup.sh`                    |4
 
 
 Local log-ins can be disabled by setting the environment variable `LOCAL_LOGIN_ENABLED` to anything
