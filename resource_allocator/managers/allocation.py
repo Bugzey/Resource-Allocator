@@ -207,6 +207,7 @@ class AllocationManager(BaseManager):
                 allocation[date].append({
                     "allocated_resource_id": resource.id,
                     "user_id": request.user_id,
+                    "user_for_id": request.user_id,
                     "points": max_points,
                     "source_request_id": request.id,
                 })
@@ -222,7 +223,6 @@ class AllocationManager(BaseManager):
                     **item,
                     "date": date,
                     "iteration_id": iteration.id,
-                    "user_for_id": item["user_id"],
                 }) for item in allocation_list
             ])
 
