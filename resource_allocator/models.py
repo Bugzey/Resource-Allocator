@@ -8,6 +8,7 @@ from enum import Enum
 import sqlalchemy as db
 from sqlalchemy import (
     ForeignKey,
+    ForeignKeyConstraint,
     func,
     inspect,
     UniqueConstraint,
@@ -151,11 +152,22 @@ class AllocationModel(Base):
             "iteration_id", "date", "allocated_resource_id",
             name="allocation_iteration_id_date_allocated_resource_id_key",
         ),
+        ForeignKeyConstraint(
+            columns=["user_id"],
+            refcolumns=["resource_allocator.user.id"],
+            name="allocation_user_id_fkey",
+        ),
+        ForeignKeyConstraint(
+            columns=["user_for_id"],
+            refcolumns=["resource_allocator.user.id"],
+            name="allocation_user_for_id_fkey",
+        ),
     )
     iteration: Mapped["IterationModel"] = relationship(back_populates="allocations")
     iteration_id: Mapped[int] = mapped_column(ForeignKey("iteration.id"))
     date: Mapped[dt.date]
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user_id: Mapped[int]
+    user_for_id: Mapped[int]
     source_request_id: Mapped[int] = mapped_column(ForeignKey("request.id"))
     allocated_resource_id: Mapped[int | None] = mapped_column(ForeignKey("resource.id"))
     allocated_resource: Mapped[ResourceModel | None] = relationship()

@@ -6,8 +6,9 @@ import datetime as dt
 import unittest
 from unittest.mock import MagicMock
 
-from resource_allocator.managers.allocation import AllocationManager
 from resource_allocator.config import Config
+from resource_allocator.managers.base import Filter
+from resource_allocator.managers.allocation import AllocationManager
 from resource_allocator.managers.iteration import IterationManager
 from resource_allocator.managers.request import RequestManager
 from resource_allocator.managers.resource import ResourceManager, ResourceGroupManager
@@ -130,28 +131,29 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
             "is_allocated": False,
         })
 
+        self.request_date = dt.date(2020, 1, 1)
         self.requests_data = [
             {
                 "iteration_id": 1,
-                "requested_date": dt.date(2020, 1, 1),
+                "requested_date": self.request_date,
                 "user_id": 1,
                 "requested_resource_id": 1,
             },
             {
                 "iteration_id": 1,
-                "requested_date": dt.date(2020, 1, 1),
+                "requested_date": self.request_date,
                 "user_id": 2,
                 "requested_resource_group_id": 3,
             },
             {
                 "iteration_id": 1,
-                "requested_date": dt.date(2020, 1, 1),
+                "requested_date": self.request_date,
                 "user_id": 3,
                 "requested_resource_group_id": 3,
             },  # Declined since no more resources are available
             {
                 "iteration_id": 1,
-                "requested_date": dt.date(2020, 1, 1),
+                "requested_date": self.request_date,
                 "user_id": 1,
                 "requested_resource_group_id": 4,
             },  # User 1 requests a resource in a different top resource group id
@@ -165,13 +167,16 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         self.allocation_manager = AllocationManager(self.sess)
 
     def test_create_item(self):
-        result = self.allocation_manager.create_item(data=dict(
-            iteration_id=self.iteration.id,
-            date=dt.date(2020, 1, 1),
-            user_id=self.users[0].id,
-            allocated_resource_id=self.resources[0].id,
-            source_request_id=self.requests[0].id,
-        ))
+        result = self.allocation_manager.create_item(
+            data=dict(
+                iteration_id=self.iteration.id,
+                date=dt.date(2020, 1, 1),
+                user_id=self.users[0].id,
+                user_for_id=self.users[0].id,
+                allocated_resource_id=self.resources[0].id,
+                source_request_id=self.requests[0].id,
+            )
+        )
         self.assertIsInstance(result, AllocationModel)
 
         #   Check that the source request is completed
@@ -179,13 +184,16 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         self.assertEqual(request.request_status.request_status, RequestStatusEnum.completed.value)
 
     def test_delete_item(self):
-        result = self.allocation_manager.create_item(data=dict(
-            iteration_id=self.iteration.id,
-            date=dt.date(2020, 1, 1),
-            user_id=self.users[0].id,
-            allocated_resource_id=self.resources[0].id,
-            source_request_id=self.requests[0].id,
-        ))
+        result = self.allocation_manager.create_item(
+            data=dict(
+                iteration_id=self.iteration.id,
+                date=dt.date(2020, 1, 1),
+                user_id=self.users[0].id,
+                user_for_id=self.users[0].id,
+                allocated_resource_id=self.resources[0].id,
+                source_request_id=self.requests[0].id,
+            )
+        )
         self.assertIsInstance(result, AllocationModel)
 
         #   Delete the allocation
@@ -230,6 +238,39 @@ class AllocationManagerTestCase(TestBase, unittest.TestCase):
         self.assertTrue(isinstance(new, list))
         self.assertEqual(len(new), 0)
         self.assertEqual(len(self.allocation_manager.list_all_items()), len(result))
+
+    def test_automatic_allocation_with_previous_manual_allocation(self):
+        """
+        An allocation was created before an automatic allocation run. The process should decline any
+        active requests and otherwise ignore the allocated seat
+        """
+        #   User ID 1 gets resource.id=2 approved before tha auto allocation
+        self.allocation_manager.create_item({
+            "iteration_id": self.iteration.id,
+            "date": dt.date(2020, 1, 1),
+            "user_id": self.users[0].id,
+            "user_for_id": self.users[0].id,
+            "allocated_resource_id": self.resources[1].id,
+            "source_request_id": self.requests[0].id,
+        })
+        self.sess.refresh(self.iteration)
+        self.assertFalse(self.iteration.is_allocated)
+        allocations = self.allocation_manager.list_all_items()
+        self.assertEqual(len(allocations), 1)
+        self.assertEqual(
+            allocations[0].allocated_resource_id,
+            self.resources[1].id,
+            "Requested resource given despite manual allocation of different resource",
+        )
+
+        #   Run automatic allocation - request id above not sepcified, so there should be 2
+        #   allocations
+        _ = self.allocation_manager.automatic_allocation(self.allocation_args)
+        self.sess.flush()
+        user_1_allocations = self.allocation_manager.list_all_items(
+            filters=[Filter("user_id", self.users[0].id), Filter("date", self.request_date)],
+        )
+        self.assertEqual(len(user_1_allocations), 2, "User 1 has multiple allocations for one date")
 
     def test_request_resource_after_allocation(self):
         _ = self.allocation_manager.automatic_allocation(self.allocation_args)

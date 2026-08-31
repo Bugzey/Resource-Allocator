@@ -2,13 +2,12 @@
 Allocation-related request schemas
 """
 
-from marshmallow import fields, validates, validates_schema, ValidationError
-from sqlalchemy import select
+from marshmallow import fields, pre_load, validates, validates_schema, ValidationError
 
 from resource_allocator.db import get_session
 from resource_allocator.schemas.base import BaseRequestSchema, BaseResponseSchema
 from resource_allocator.models import (
-    IterationModel, UserModel, RequestModel, ResourceModel, AllocationModel,
+    IterationModel, UserModel, RequestModel, ResourceModel, AllocationModel
 )
 
 
@@ -16,30 +15,34 @@ class AllocationRequestSchema(BaseRequestSchema):
     iteration_id = fields.Integer(required=True)
     date = fields.Date(required=True)
     user_id = fields.Integer(required=True)
+    user_for_id = fields.Integer(required=False)
     source_request_id = fields.Integer(required=True)
     allocated_resource_id = fields.Integer(required=True)
     points = fields.Integer()
 
-    @validates("iteration_id")
-    def validate_iteration_id(self, value, data_key):
-        iteration = get_session().get(IterationModel, value)
-        if not iteration:
-            raise ValidationError(f"Invalid iteration: {value}")
+    @pre_load
+    def fill_in_user_for_id(self, data, **kwargs):
+        if not data.get("user_for_id"):
+            data["user_for_id"] = data.get("user_id")
 
-    @validates("user_id")
-    def validate_user_id(self, value, data_key):
-        if not get_session().get(UserModel, value):
-            raise ValidationError(f"Invalid user: {value}")
+        return data
 
-    @validates("source_request_id")
-    def validate_source_request_id(self, value, data_key):
-        if not get_session().get(RequestModel, value):
-            raise ValidationError(f"Invalid request: {value}")
+    @validates("user_id", "iteration_id", "source_request_id", "allocated_resource_id")
+    def validate_item_id(self, value, data_key):
+        match data_key:
+            case "user_id":
+                model = UserModel
+            case "source_request_id":
+                model = RequestModel
+            case "allocated_resource_id":
+                model = ResourceModel
+            case "iteration_id":
+                model = IterationModel
+            case _:
+                raise ValueError(f"Invalid validation data key: {data_key}")
 
-    @validates("allocated_resource_id")
-    def validate_allocated_resource_id(self, value, data_key):
-        if not get_session().get(ResourceModel, value):
-            raise ValidationError(f"Invalid resource: {value}")
+        if not get_session().get(model, value):
+            raise ValidationError(f"Invalid value for {data_key}: {value}")
 
     @validates_schema
     def validate_iteration_bounds(self, data, **kwargs):
@@ -51,33 +54,19 @@ class AllocationRequestSchema(BaseRequestSchema):
             )
 
     @validates_schema
-    def validate_already_allocated(self, data, **kwargs):
-        #   Unique constraints
-        #   1. a resource cannot be allocated again
-        #   2. OR user cannot be allocated again for a single day for the same top resource group
+    def validate_resource_already_allocated(self, data, **kwargs):
+        """
+        A resource is already allocated for the given date
+        """
         date = data["date"]
+        resource_id = data["allocated_resource_id"]
         sess = get_session()
-        top_resource_group_id = sess.scalar(
-            select(ResourceModel.top_resource_group_id)
-            .where(ResourceModel.id == data["allocated_resource_id"])
-        )
         resource_allocated = (
             (AllocationModel.date == date)
-            & (AllocationModel.allocated_resource_id == data["allocated_resource_id"])
+            & (AllocationModel.allocated_resource_id == resource_id)
         )
-        user_allocated = (
-            (AllocationModel.date == date)
-            & (AllocationModel.user_id == data["user_id"])
-            & (
-                AllocationModel.allocated_resource_id.in_(
-                    select(ResourceModel.id)
-                    .where(ResourceModel.top_resource_group_id == top_resource_group_id)
-                )
-            )
-            & (AllocationModel.id != data.get("id"))  # Ignore condition when updating
-        )
-        if sess.query(AllocationModel).where(resource_allocated | user_allocated).first():
-            raise ValidationError(f"User or resource already allocated for date {data['date']}")
+        if sess.query(AllocationModel).where(resource_allocated).first():
+            raise ValidationError(f"Resource {resource_id=} already allocated for {date}")
 
 
 class AllocationAutomaticAllocationSchema(BaseRequestSchema):

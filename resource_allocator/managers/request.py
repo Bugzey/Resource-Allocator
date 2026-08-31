@@ -16,6 +16,9 @@ class RequestManager(BaseManager):
     model = RequestModel
 
     def _get_allocation_manager(self) -> BaseManager:
+        """
+        Avoid a circular import by importing the AllocationManager here
+        """
         from resource_allocator.managers.allocation import AllocationManager
         return AllocationManager(self.sess)
 
