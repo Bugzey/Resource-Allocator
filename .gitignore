@@ -139,12 +139,13 @@ cython_debug/
 
 # Vim swap files
 *.swp
+*.swo
 
 # Top-level Shell files for now
-/*.sh
+config*.sh
 
 # CMD shell files
-*.cmd
+/*.cmd
 
 # Linux deploy logging
 nohup.out
